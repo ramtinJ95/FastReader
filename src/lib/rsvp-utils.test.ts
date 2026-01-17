@@ -6,6 +6,8 @@ import {
   splitWordForDisplay,
   getWordDelay,
   shouldPauseAtWord,
+  formatTimeRemaining,
+  extractWordFrame,
 } from './rsvp-utils';
 
 describe('parseText', () => {
@@ -178,5 +180,75 @@ describe('shouldPauseAtWord', () => {
   it('should return false between intervals', () => {
     expect(shouldPauseAtWord(3, 5)).toBe(false);
     expect(shouldPauseAtWord(7, 5)).toBe(false);
+  });
+});
+
+describe('formatTimeRemaining', () => {
+  it('should return "0:00" for zero or negative words', () => {
+    expect(formatTimeRemaining(0, 300)).toBe('0:00');
+    expect(formatTimeRemaining(-10, 300)).toBe('0:00');
+  });
+
+  it('should return "0:00" for invalid WPM', () => {
+    expect(formatTimeRemaining(100, 0)).toBe('0:00');
+    expect(formatTimeRemaining(100, -300)).toBe('0:00');
+  });
+
+  it('should calculate correct time', () => {
+    // 300 words at 300 WPM = 1 minute
+    expect(formatTimeRemaining(300, 300)).toBe('1:00');
+
+    // 150 words at 300 WPM = 30 seconds
+    expect(formatTimeRemaining(150, 300)).toBe('0:30');
+
+    // 450 words at 300 WPM = 1:30
+    expect(formatTimeRemaining(450, 300)).toBe('1:30');
+  });
+
+  it('should pad seconds with leading zero', () => {
+    // 5 words at 300 WPM = 1 second
+    expect(formatTimeRemaining(5, 300)).toBe('0:01');
+  });
+});
+
+describe('extractWordFrame', () => {
+  const words = ['one', 'two', 'three', 'four', 'five'];
+
+  it('should return single word for frameSize 1', () => {
+    expect(extractWordFrame(words, 2, 1)).toEqual({
+      subset: ['three'],
+      centerOffset: 0,
+    });
+  });
+
+  it('should extract frame centered on index', () => {
+    // Frame of 3 centered on index 2 ('three')
+    expect(extractWordFrame(words, 2, 3)).toEqual({
+      subset: ['two', 'three', 'four'],
+      centerOffset: 1,
+    });
+  });
+
+  it('should handle edge at beginning', () => {
+    // Frame of 3 centered on index 0
+    expect(extractWordFrame(words, 0, 3)).toEqual({
+      subset: ['one', 'two'],
+      centerOffset: 0,
+    });
+  });
+
+  it('should handle edge at end', () => {
+    // Frame of 3 centered on last index
+    expect(extractWordFrame(words, 4, 3)).toEqual({
+      subset: ['four', 'five'],
+      centerOffset: 1,
+    });
+  });
+
+  it('should handle frameSize larger than array', () => {
+    expect(extractWordFrame(words, 2, 10)).toEqual({
+      subset: words,
+      centerOffset: 2,
+    });
   });
 });

@@ -1,4 +1,4 @@
-import type { WordParts } from '../types';
+import type { WordParts, WordFrame } from '../types';
 
 /**
  * Parse text into an array of words
@@ -132,4 +132,50 @@ export function shouldPauseAtWord(wordIndex: number, pauseAfterWords: number): b
   if (pauseAfterWords <= 0) return false;
   if (wordIndex <= 0) return false;
   return wordIndex % pauseAfterWords === 0;
+}
+
+/**
+ * Format remaining reading time as MM:SS
+ *
+ * @param remainingWords - Number of words remaining
+ * @param wordsPerMinute - Reading speed in WPM
+ * @returns Formatted time string (e.g., "2:30")
+ */
+export function formatTimeRemaining(remainingWords: number, wordsPerMinute: number): string {
+  if (remainingWords <= 0 || !wordsPerMinute || wordsPerMinute <= 0) {
+    return '0:00';
+  }
+
+  const seconds = Math.ceil((remainingWords / wordsPerMinute) * 60);
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Extract a subset of words centered on current position (for context mode).
+ *
+ * @param allWords - Complete word array
+ * @param centerIdx - Index to center on
+ * @param frameSize - Total words to display (odd numbers recommended)
+ * @returns Object with subset array and center offset
+ */
+export function extractWordFrame(
+  allWords: string[],
+  centerIdx: number,
+  frameSize: number
+): WordFrame {
+  if (frameSize <= 1 || centerIdx >= allWords.length) {
+    return { subset: [allWords[centerIdx] || ''], centerOffset: 0 };
+  }
+
+  const radius = Math.floor(frameSize / 2);
+  const leftBound = Math.max(0, centerIdx - radius);
+  const rightBound = Math.min(allWords.length, centerIdx + radius + 1);
+
+  const subset = allWords.slice(leftBound, rightBound);
+  const centerOffset = centerIdx - leftBound;
+
+  return { subset, centerOffset };
 }
