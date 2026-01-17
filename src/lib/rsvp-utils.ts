@@ -79,3 +79,57 @@ export function splitWordForDisplay(word: string): WordParts {
     after: word.slice(orpIndex + 1),
   };
 }
+
+/**
+ * Calculate the display delay for a word based on WPM and settings.
+ *
+ * @param word - The word to calculate delay for
+ * @param wordsPerMinute - Reading speed in WPM
+ * @param pauseOnPunctuation - Whether to add extra pause on punctuation
+ * @param punctuationMultiplier - Multiplier for sentence-ending punctuation
+ * @param wordLengthWPMMultiplier - Percentage increase per char for long words
+ * @returns Delay in milliseconds
+ */
+export function getWordDelay(
+  word: string,
+  wordsPerMinute: number,
+  pauseOnPunctuation: boolean = true,
+  punctuationMultiplier: number = 2,
+  wordLengthWPMMultiplier: number = 0
+): number {
+  if (!word || typeof word !== 'string') return 60000 / wordsPerMinute;
+  if (!wordsPerMinute || wordsPerMinute <= 0) return 200; // Default fallback
+
+  let baseDelay = 60000 / wordsPerMinute;
+
+  // Longer pause for long words (12+ characters)
+  if (wordLengthWPMMultiplier > 0 && word.length >= 12) {
+    baseDelay *= 1 + (wordLengthWPMMultiplier / 100) * (word.length - 12);
+  }
+
+  if (pauseOnPunctuation) {
+    // Sentence-ending punctuation: configurable multiplier (default 2x)
+    if (/[.!?;:]$/.test(word)) {
+      return baseDelay * punctuationMultiplier;
+    }
+    // Commas: 1.5x delay
+    if (/[,]$/.test(word)) {
+      return baseDelay * 1.5;
+    }
+  }
+
+  return baseDelay;
+}
+
+/**
+ * Check if auto-pause should trigger at this word index.
+ *
+ * @param wordIndex - Current word index (0-based)
+ * @param pauseAfterWords - Pause after every N words (0 = disabled)
+ * @returns Whether to pause
+ */
+export function shouldPauseAtWord(wordIndex: number, pauseAfterWords: number): boolean {
+  if (pauseAfterWords <= 0) return false;
+  if (wordIndex <= 0) return false;
+  return wordIndex % pauseAfterWords === 0;
+}

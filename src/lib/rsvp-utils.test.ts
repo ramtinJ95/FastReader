@@ -4,6 +4,8 @@ import {
   getORPIndex,
   getActualORPIndex,
   splitWordForDisplay,
+  getWordDelay,
+  shouldPauseAtWord,
 } from './rsvp-utils';
 
 describe('parseText', () => {
@@ -119,5 +121,62 @@ describe('splitWordForDisplay', () => {
       orp: 'e',
       after: 'llo',
     });
+  });
+});
+
+describe('getWordDelay', () => {
+  it('should calculate base delay from WPM', () => {
+    // 300 WPM = 60000ms / 300 = 200ms per word
+    expect(getWordDelay('hello', 300, false)).toBe(200);
+  });
+
+  it('should return fallback for invalid WPM', () => {
+    expect(getWordDelay('hello', 0)).toBe(200);
+    expect(getWordDelay('hello', -100)).toBe(200);
+  });
+
+  it('should apply punctuation multiplier for sentence endings', () => {
+    const baseDelay = 200; // 300 WPM
+    expect(getWordDelay('hello.', 300, true, 2)).toBe(baseDelay * 2);
+    expect(getWordDelay('hello!', 300, true, 2)).toBe(baseDelay * 2);
+    expect(getWordDelay('hello?', 300, true, 2)).toBe(baseDelay * 2);
+  });
+
+  it('should apply 1.5x multiplier for commas', () => {
+    const baseDelay = 200;
+    expect(getWordDelay('hello,', 300, true, 2)).toBe(baseDelay * 1.5);
+  });
+
+  it('should not apply punctuation delay when disabled', () => {
+    expect(getWordDelay('hello.', 300, false)).toBe(200);
+  });
+
+  it('should apply long word multiplier', () => {
+    // 12-char word with 5% multiplier per extra char
+    const longWord = 'abcdefghijklmn'; // 14 chars, 2 extra
+    const baseDelay = 200;
+    // 2 extra chars * 5% = 10% increase
+    expect(getWordDelay(longWord, 300, false, 2, 5)).toBe(baseDelay * 1.1);
+  });
+});
+
+describe('shouldPauseAtWord', () => {
+  it('should return false when pauseAfterWords is 0', () => {
+    expect(shouldPauseAtWord(10, 0)).toBe(false);
+  });
+
+  it('should return false for word index 0', () => {
+    expect(shouldPauseAtWord(0, 5)).toBe(false);
+  });
+
+  it('should return true at pause intervals', () => {
+    expect(shouldPauseAtWord(5, 5)).toBe(true);
+    expect(shouldPauseAtWord(10, 5)).toBe(true);
+    expect(shouldPauseAtWord(15, 5)).toBe(true);
+  });
+
+  it('should return false between intervals', () => {
+    expect(shouldPauseAtWord(3, 5)).toBe(false);
+    expect(shouldPauseAtWord(7, 5)).toBe(false);
   });
 });
