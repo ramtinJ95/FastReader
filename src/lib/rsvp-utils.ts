@@ -29,7 +29,6 @@ export function getORPIndex(word: string): number {
   // Count only letters (Unicode-aware)
   const len = word.replace(/[^\p{L}]/gu, '').length;
 
-  if (len <= 1) return 0;
   if (len <= 3) return 0; // 1-3 letters: 1st letter
   if (len <= 5) return 1; // 4-5 letters: 2nd letter
   if (len <= 9) return 2; // 6-9 letters: 3rd letter
@@ -97,8 +96,8 @@ export function getWordDelay(
   punctuationMultiplier: number = 2,
   wordLengthWPMMultiplier: number = 0
 ): number {
-  if (!word || typeof word !== 'string') return 60000 / wordsPerMinute;
   if (!wordsPerMinute || wordsPerMinute <= 0) return 200; // Default fallback
+  if (!word || typeof word !== 'string') return 200;
 
   let baseDelay = 60000 / wordsPerMinute;
 
