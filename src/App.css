@@ -3,13 +3,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  padding: var(--spacing-xl);
+  text-align: center;
 }
 
 .app h1 {
+  color: var(--color-accent);
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
 }
 
 .app p {
-  color: #888;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
 }
