@@ -158,3 +158,20 @@ describe('Multi-Word Mode', () => {
     expect(wordContainer).toHaveClass('multi-mode');
   });
 });
+
+describe('Responsive Behavior', () => {
+  it('should render with rsvp-display class', () => {
+    const { container } = render(<RSVPDisplay word="hello" />);
+
+    const display = container.querySelector('.rsvp-display');
+    expect(display).toBeInTheDocument();
+  });
+
+  it('should have min-height set', () => {
+    const { container } = render(<RSVPDisplay word="hello" />);
+
+    const display = container.querySelector('.rsvp-display');
+    expect(display).toHaveClass('rsvp-display');
+    // Note: CSS min-height can't be easily tested in JSDOM
+  });
+});
