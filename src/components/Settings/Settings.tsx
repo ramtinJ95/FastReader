@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { Settings as SettingsType } from '../../types';
 import './Settings.css';
 
@@ -28,6 +28,17 @@ export function Settings({ settings, onChange, onClose }: SettingsProps) {
     },
     [onChange]
   );
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
     <div className="settings-overlay" onClick={onClose}>
