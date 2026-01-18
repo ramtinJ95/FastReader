@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TextInput } from './TextInput';
 
 const defaultProps = {
@@ -25,5 +25,51 @@ describe('TextInput', () => {
   it('should display textarea', () => {
     render(<TextInput {...defaultProps} />);
     expect(screen.getByPlaceholderText(/paste your text/i)).toBeInTheDocument();
+  });
+});
+
+describe('Text Input Functionality', () => {
+  it('should update textarea value', () => {
+    render(<TextInput {...defaultProps} />);
+
+    const textarea = screen.getByPlaceholderText(/paste your text/i);
+    fireEvent.change(textarea, { target: { value: 'Hello world' } });
+
+    expect(textarea).toHaveValue('Hello world');
+  });
+
+  it('should call onApply with text when form submitted', () => {
+    const onApply = vi.fn();
+    render(<TextInput {...defaultProps} onApply={onApply} />);
+
+    const textarea = screen.getByPlaceholderText(/paste your text/i);
+    fireEvent.change(textarea, { target: { value: 'Hello world' } });
+
+    const submitBtn = screen.getByRole('button', { name: /load text/i });
+    fireEvent.click(submitBtn);
+
+    expect(onApply).toHaveBeenCalledWith('Hello world');
+  });
+
+  it('should show error when submitting whitespace-only text', () => {
+    render(<TextInput {...defaultProps} text="   " />);
+
+    // Submit button should be disabled for whitespace-only text
+    const submitBtn = screen.getByRole('button', { name: /load text/i });
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it('should disable submit button when text is empty', () => {
+    render(<TextInput {...defaultProps} text="" />);
+
+    const submitBtn = screen.getByRole('button', { name: /load text/i });
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it('should initialize with provided text', () => {
+    render(<TextInput {...defaultProps} text="Initial text" />);
+
+    const textarea = screen.getByPlaceholderText(/paste your text/i);
+    expect(textarea).toHaveValue('Initial text');
   });
 });
