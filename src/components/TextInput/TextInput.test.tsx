@@ -129,3 +129,25 @@ describe('File Upload Functionality', () => {
     expect(onFileSelect).toHaveBeenCalledWith(file);
   });
 });
+
+describe('Loading State', () => {
+  it('should show loading message', () => {
+    render(<TextInput {...defaultProps} isLoading={true} loadingMessage="Parsing PDF..." />);
+
+    expect(screen.getByText('Parsing PDF...')).toBeInTheDocument();
+  });
+
+  it('should show spinner when loading', () => {
+    const { container } = render(<TextInput {...defaultProps} isLoading={true} />);
+
+    expect(container.querySelector('.spinner')).toBeInTheDocument();
+  });
+
+  it('should disable controls when loading', () => {
+    render(<TextInput {...defaultProps} isLoading={true} text="some text" />);
+
+    expect(screen.getByPlaceholderText(/paste/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /load text/i })).toBeDisabled();
+  });
+});
