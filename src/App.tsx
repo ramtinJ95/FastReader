@@ -88,10 +88,16 @@ function App() {
 
   // Handle save with feedback
   const handleSave = useCallback(() => {
-    const success = session.save();
-    if (success) {
+    const result = session.save();
+    if (result.success) {
       setSaveMessage('Session saved!');
       setTimeout(() => setSaveMessage(''), 2000);
+    } else if (result.reason === 'size_exceeded') {
+      setSaveMessage('Document too large to save');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } else {
+      setSaveMessage('Failed to save session');
+      setTimeout(() => setSaveMessage(''), 3000);
     }
   }, [session]);
 

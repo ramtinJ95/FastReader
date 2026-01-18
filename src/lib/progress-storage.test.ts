@@ -46,8 +46,26 @@ describe('progress-storage', () => {
 
       const result = saveSession(session);
 
-      expect(result).toBe(true);
+      expect(result.success).toBe(true);
       expect(localStorageMock.setItem).toHaveBeenCalled();
+    });
+
+    it('should reject sessions that exceed size limit', () => {
+      // Create a very large text (5MB+)
+      const largeText = 'x'.repeat(5 * 1024 * 1024);
+      const session = {
+        text: largeText,
+        currentWordIndex: 0,
+        totalWords: 1,
+        settings: DEFAULT_SETTINGS,
+      };
+
+      const result = saveSession(session);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toBe('size_exceeded');
+      }
     });
   });
 

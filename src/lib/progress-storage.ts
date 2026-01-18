@@ -2,17 +2,33 @@ import type { Session, SessionSummary } from '../types';
 
 const STORAGE_KEY = 'fastreader-session';
 
+// Max session size in bytes (4MB - leaving room for other localStorage data)
+const MAX_SESSION_SIZE = 4 * 1024 * 1024;
+
+export type SaveSessionResult =
+  | { success: true }
+  | { success: false; reason: 'size_exceeded' | 'storage_error' };
+
 /**
  * Save the current reading session to localStorage
  */
-export function saveSession(session: Omit<Session, 'savedAt'>): boolean {
+export function saveSession(session: Omit<Session, 'savedAt'>): SaveSessionResult {
   try {
     const data: Session = { ...session, savedAt: Date.now() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return true;
+    const jsonString = JSON.stringify(data);
+
+    // Check size before attempting to save
+    const sizeInBytes = new Blob([jsonString]).size;
+    if (sizeInBytes > MAX_SESSION_SIZE) {
+      console.warn(`Session size (${(sizeInBytes / 1024 / 1024).toFixed(2)}MB) exceeds maximum allowed (${MAX_SESSION_SIZE / 1024 / 1024}MB)`);
+      return { success: false, reason: 'size_exceeded' };
+    }
+
+    localStorage.setItem(STORAGE_KEY, jsonString);
+    return { success: true };
   } catch (error) {
     console.error('Failed to save session:', error);
-    return false;
+    return { success: false, reason: 'storage_error' };
   }
 }
 

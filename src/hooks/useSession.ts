@@ -5,6 +5,7 @@ import {
   hasSession,
   clearSession,
   getSessionSummary,
+  type SaveSessionResult,
 } from '../lib/progress-storage';
 import type { Settings, SessionSummary } from '../types';
 
@@ -30,8 +31,8 @@ export interface UseSessionReturn {
   sessionSummary: SessionSummary | null;
   /** Whether to show resume prompt */
   showResumePrompt: boolean;
-  /** Save current session */
-  save: () => boolean;
+  /** Save current session - returns result with success status and optional failure reason */
+  save: () => SaveSessionResult;
   /** Load and resume saved session */
   resume: () => void;
   /** Clear saved session and start fresh */
@@ -63,23 +64,23 @@ export function useSession({
   }, []);
 
   // Save current session
-  const save = useCallback((): boolean => {
+  const save = useCallback((): SaveSessionResult => {
     const words = text.trim().split(/\s+/).filter((w) => w.length > 0);
-    if (words.length === 0) return false;
+    if (words.length === 0) return { success: false, reason: 'storage_error' };
 
-    const success = saveSession({
+    const result = saveSession({
       text,
       currentWordIndex,
       totalWords: words.length,
       settings,
     });
 
-    if (success) {
+    if (result.success) {
       setHasSavedSession(true);
       setSessionSummary(getSessionSummary());
     }
 
-    return success;
+    return result;
   }, [text, currentWordIndex, settings]);
 
   // Load and resume saved session

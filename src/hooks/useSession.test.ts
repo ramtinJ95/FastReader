@@ -146,12 +146,12 @@ describe('useSession', () => {
       useSession({ ...defaultOptions, text: '   ' })
     );
 
-    let success: boolean = false;
+    let saveResult: { success: boolean };
     act(() => {
-      success = result.current.save();
+      saveResult = result.current.save();
     });
 
-    expect(success).toBe(false);
+    expect(saveResult!.success).toBe(false);
     expect(result.current.hasSavedSession).toBe(false);
   });
 
