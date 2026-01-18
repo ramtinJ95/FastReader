@@ -42,7 +42,9 @@ export function SavedSessionPrompt({
 }: SavedSessionPromptProps) {
   if (!isOpen || !summary) return null;
 
-  const progress = Math.round((summary.currentWordIndex / summary.totalWords) * 100);
+  const progress = summary.totalWords > 0
+    ? Math.round((summary.currentWordIndex / summary.totalWords) * 100)
+    : 0;
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
