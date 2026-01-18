@@ -1,11 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { RSVPDisplay } from './components/RSVPDisplay';
 import { Controls } from './components/Controls';
 import { ProgressBar } from './components/ProgressBar';
 import { Settings } from './components/Settings';
 import { TextInput } from './components/TextInput';
-import { JumpToDialog } from './components/dialogs';
+import { JumpToDialog, SavedSessionPrompt } from './components/dialogs';
 import { usePlayback } from './hooks/usePlayback';
+import { useSession } from './hooks/useSession';
 import { formatTimeRemaining, extractWordFrame } from './lib/rsvp-utils';
 import { parseFile } from './lib/file-parsers';
 import { DEFAULT_SETTINGS, type Settings as SettingsType } from './types';
@@ -40,6 +41,13 @@ const FileIcon = () => (
   </svg>
 );
 
+// Save icon
+const SaveIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
+  </svg>
+);
+
 function App() {
   const [text, setText] = useState(SAMPLE_TEXT);
   const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
@@ -49,11 +57,53 @@ function App() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [fileError, setFileError] = useState('');
+  const [saveMessage, setSaveMessage] = useState('');
 
   const playback = usePlayback({
     text,
     settings,
   });
+
+  // Session management
+  const session = useSession({
+    text,
+    currentWordIndex: playback.currentWordIndex,
+    settings,
+    onSessionLoad: useCallback(
+      (loadedSession: { text: string; currentWordIndex: number; settings: SettingsType }) => {
+        setText(loadedSession.text);
+        setSettings(loadedSession.settings);
+        playback.setText(loadedSession.text);
+        // Seek to saved position after a tick
+        setTimeout(() => {
+          playback.seekTo(loadedSession.currentWordIndex);
+        }, 0);
+      },
+      [playback]
+    ),
+  });
+
+  // Handle save with feedback
+  const handleSave = useCallback(() => {
+    const success = session.save();
+    if (success) {
+      setSaveMessage('Session saved!');
+      setTimeout(() => setSaveMessage(''), 2000);
+    }
+  }, [session]);
+
+  // Keyboard shortcut for save (Ctrl+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   const handleSettingsChange = useCallback((changes: Partial<SettingsType>) => {
     setSettings((prev) => ({ ...prev, ...changes }));
@@ -119,6 +169,13 @@ function App() {
             </button>
             <button
               className="icon-btn"
+              onClick={handleSave}
+              title="Save Session (Ctrl+S)"
+            >
+              <SaveIcon />
+            </button>
+            <button
+              className="icon-btn"
               onClick={() => setShowJumpTo(true)}
               title="Jump to (G)"
             >
@@ -134,6 +191,9 @@ function App() {
           </div>
         </header>
       )}
+
+      {/* Save feedback message */}
+      {saveMessage && <div className="save-message">{saveMessage}</div>}
 
       <div className="rsvp-container">
         <RSVPDisplay
@@ -198,6 +258,14 @@ function App() {
           onClose={() => setShowTextInput(false)}
         />
       )}
+
+      <SavedSessionPrompt
+        isOpen={session.showResumePrompt}
+        summary={session.sessionSummary}
+        onResume={session.resume}
+        onStartFresh={session.startFresh}
+        onClose={session.dismissPrompt}
+      />
     </div>
   );
 }
