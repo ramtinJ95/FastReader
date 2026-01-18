@@ -114,3 +114,60 @@ describe('Toggle Settings', () => {
     expect(screen.queryByLabelText(/pause multiplier/i)).not.toBeInTheDocument();
   });
 });
+
+describe('Slider Settings', () => {
+  it('should update fade duration', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} />);
+
+    const slider = screen.getByLabelText(/fade duration/i);
+    fireEvent.change(slider, { target: { value: '200' } });
+
+    expect(onChange).toHaveBeenCalledWith({ fadeDuration: 200 });
+  });
+
+  it('should update punctuation multiplier', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} />);
+
+    const slider = screen.getByLabelText(/pause multiplier/i);
+    fireEvent.change(slider, { target: { value: '3' } });
+
+    expect(onChange).toHaveBeenCalledWith({ punctuationPauseMultiplier: 3 });
+  });
+
+  it('should update long word multiplier', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} />);
+
+    const slider = screen.getByLabelText(/extra delay per char/i);
+    fireEvent.change(slider, { target: { value: '10' } });
+
+    expect(onChange).toHaveBeenCalledWith({ wordLengthWPMMultiplier: 10 });
+  });
+
+  it('should update frame word count', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} />);
+
+    const slider = screen.getByLabelText(/words shown/i);
+    fireEvent.change(slider, { target: { value: '5' } });
+
+    expect(onChange).toHaveBeenCalledWith({ frameWordCount: 5 });
+  });
+
+  it('should update periodic pause settings', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} settings={{ ...DEFAULT_SETTINGS, pauseAfterWords: 10 }} />);
+
+    const durationSlider = screen.getByLabelText(/pause duration/i);
+    fireEvent.change(durationSlider, { target: { value: '1000' } });
+
+    expect(onChange).toHaveBeenCalledWith({ pauseDuration: 1000 });
+  });
+
+  it('should show "Off" when periodic pause is 0', () => {
+    render(<Settings {...defaultProps} settings={{ ...DEFAULT_SETTINGS, pauseAfterWords: 0 }} />);
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+});
