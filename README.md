@@ -1,94 +1,106 @@
 # FastReader
 
-A speed reading application using RSVP (Rapid Serial Visual Presentation) technique. Displays one word at a time at a fixed focal point with ORP (Optimal Recognition Point) highlighting to eliminate eye movement during reading.
+A fast, distraction-free speed reading app using RSVP (Rapid Serial Visual Presentation) technique.
+
+![FastReader Screenshot](screenshot.png)
 
 ## Features
 
-- **ORP Highlighting** - Red highlighted letter at optimal focus point
-- **Adjustable WPM** - 50-1000 words per minute with presets
-- **Punctuation Pauses** - Longer delays on sentence endings
-- **Focus Mode** - Minimal UI during reading
-- **Progress Tracking** - Seekable progress bar with time remaining
-- **Session Persistence** - Save/resume reading sessions
-- **PDF Support** - Extract text from PDF files
-- **Keyboard Shortcuts** - Full keyboard navigation
+- **RSVP Reading**: Display one word at a time at a fixed focal point
+- **ORP Highlighting**: Optimal Recognition Point highlighting for faster comprehension
+- **Adjustable Speed**: 50-1000 WPM with preset buttons
+- **PDF Support**: Upload and read PDF documents
+- **Session Persistence**: Save and resume your reading progress
+- **Keyboard Shortcuts**: Full keyboard navigation
+- **Mobile Friendly**: Touch controls for mobile devices
+- **Dark Theme**: Easy on the eyes for extended reading
 
-## Tech Stack
-
-- React 18
-- TypeScript
-- Vite
-- Vitest (testing)
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Installation
+## Quick Start
 
 ```bash
+# Install dependencies
 npm install
-```
 
-### Development
-
-```bash
+# Start development server
 npm run dev
-```
 
-Opens the app at `http://localhost:5173`
-
-### Build
-
-```bash
+# Build for production
 npm run build
-```
-
-### Preview Production Build
-
-```bash
-npm run preview
-```
-
-### Testing
-
-```bash
-# Run tests in watch mode
-npm test
-
-# Run tests once
-npm run test:run
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-### Linting & Formatting
-
-```bash
-# Lint
-npm run lint
-
-# Format code
-npm run format
 ```
 
 ## Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
-| `Space` | Play/Pause/Resume toggle |
-| `Escape` | Close panels / Exit focus mode |
-| `G` | Open jump-to dialog |
-| `Ctrl+S` / `Cmd+S` | Save session |
-| `Arrow Up` | +25 WPM |
-| `Arrow Down` | -25 WPM |
-| `Arrow Left` | Skip back 2 words |
-| `Arrow Right` | Skip forward 1 word |
+| `Space` | Play/Pause/Resume |
+| `Escape` | Stop playback / Close dialogs |
+| `G` | Jump to position |
+| `S` | Open settings |
+| `T` | Open text input |
+| `Ctrl+S` | Save session |
+| `↑` / `↓` | Increase/Decrease WPM |
+| `←` / `→` | Skip backward/forward |
+
+## Settings
+
+- **Words per Minute (WPM)**: 50-1000, with presets at 200, 300, 400, 500
+- **Fade Effect**: Smooth transitions between words
+- **Punctuation Pauses**: Longer pauses at sentence endings
+- **Long Word Adjustment**: Extra time for complex words
+- **Periodic Pause**: Auto-pause every N words
+- **Context Words**: Show surrounding words for context
+
+## Technology Stack
+
+- React 18
+- TypeScript
+- Vite
+- PDF.js for PDF parsing
+- Vitest for testing
+- Playwright for E2E tests
+
+## Development
+
+```bash
+# Run tests
+npm run test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run E2E tests
+npm run test:e2e
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+```
+
+## Project Structure
+
+```
+src/
+├── components/       # React components
+├── hooks/           # Custom React hooks
+├── lib/             # Utility functions
+├── types/           # TypeScript types
+└── __tests__/       # Integration tests
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `npm run test`
+5. Submit a pull request
 
 ## License
 
 MIT
+
+## Acknowledgments
+
+Based on [thomaskolmans/rsvp-reading](https://github.com/thomaskolmans/rsvp-reading)
