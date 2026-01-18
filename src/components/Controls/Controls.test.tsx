@@ -59,3 +59,53 @@ describe('Button State Machine', () => {
     expect(screen.getByRole('button', { name: /stop/i })).not.toBeDisabled();
   });
 });
+
+describe('Button Callbacks', () => {
+  it('should call onPlay when Play is clicked', () => {
+    const onPlay = vi.fn();
+    render(<Controls {...defaultProps} onPlay={onPlay} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /play/i }));
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onPause when Pause is clicked', () => {
+    const onPause = vi.fn();
+    render(<Controls {...defaultProps} isPlaying={true} onPause={onPause} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /pause/i }));
+    expect(onPause).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onResume when Resume is clicked', () => {
+    const onResume = vi.fn();
+    render(<Controls {...defaultProps} isPaused={true} onResume={onResume} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /resume/i }));
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onStop when Stop is clicked', () => {
+    const onStop = vi.fn();
+    render(<Controls {...defaultProps} isPlaying={true} onStop={onStop} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+    expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onRestart when Restart is clicked', () => {
+    const onRestart = vi.fn();
+    render(<Controls {...defaultProps} onRestart={onRestart} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /restart/i }));
+    expect(onRestart).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not call onPlay when disabled', () => {
+    const onPlay = vi.fn();
+    render(<Controls {...defaultProps} canPlay={false} onPlay={onPlay} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /play/i }));
+    expect(onPlay).not.toHaveBeenCalled();
+  });
+});
