@@ -29,6 +29,10 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: undefined });
   };
 
+  handleReload = () => {
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -41,9 +45,14 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="error-message">
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
-          <button className="btn primary" onClick={this.handleRetry}>
-            Try Again
-          </button>
+          <div className="error-actions">
+            <button className="btn primary" onClick={this.handleRetry}>
+              Try Again
+            </button>
+            <button className="btn secondary" onClick={this.handleReload}>
+              Reload Page
+            </button>
+          </div>
         </div>
       );
     }
