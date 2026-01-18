@@ -48,6 +48,7 @@ function App() {
   const [showJumpTo, setShowJumpTo] = useState(false);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [fileError, setFileError] = useState('');
 
   const playback = usePlayback({
     text,
@@ -70,6 +71,7 @@ function App() {
     async (file: File) => {
       setIsLoadingFile(true);
       setLoadingMessage(`Parsing ${file.name}...`);
+      setFileError('');
 
       try {
         const extractedText = await parseFile(file);
@@ -78,7 +80,7 @@ function App() {
         setShowTextInput(false);
       } catch (error) {
         console.error('Failed to parse file:', error);
-        setLoadingMessage(
+        setFileError(
           error instanceof Error ? error.message : 'Failed to parse file'
         );
       } finally {
@@ -190,6 +192,7 @@ function App() {
           text={text}
           isLoading={isLoadingFile}
           loadingMessage={loadingMessage}
+          fileError={fileError}
           onApply={handleTextApply}
           onFileSelect={handleFileSelect}
           onClose={() => setShowTextInput(false)}

@@ -22,6 +22,8 @@ export interface TextInputProps {
   isLoading: boolean;
   /** Loading message to display */
   loadingMessage: string;
+  /** External error message (e.g., from file parsing) */
+  fileError?: string;
   /** Called when text is applied */
   onApply: (text: string) => void;
   /** Called when file is selected */
@@ -34,12 +36,16 @@ export function TextInput({
   text: initialText,
   isLoading,
   loadingMessage,
+  fileError,
   onApply,
   onFileSelect,
   onClose,
 }: TextInputProps) {
   const [text, setText] = useState(initialText);
   const [error, setError] = useState('');
+
+  // Combined error message (local validation errors or external file errors)
+  const displayError = error || fileError;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTextChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -127,7 +133,7 @@ export function TextInput({
           )}
 
           {/* Error Message */}
-          {error && <p className="error-message">{error}</p>}
+          {displayError && <p className="error-message">{displayError}</p>}
 
           {/* Divider */}
           <div className="divider">
