@@ -5,6 +5,16 @@ const STORAGE_KEY = 'fastreader-session';
 // Max session size in bytes (4MB - leaving room for other localStorage data)
 const MAX_SESSION_SIZE = 4 * 1024 * 1024;
 
+// Max session age in milliseconds (30 days)
+const MAX_SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Check if a session has expired based on its savedAt timestamp
+ */
+function isSessionExpired(savedAt: number): boolean {
+  return Date.now() - savedAt > MAX_SESSION_AGE_MS;
+}
+
 export type SaveSessionResult =
   | { success: true }
   | { success: false; reason: 'size_exceeded' | 'storage_error' };
@@ -47,11 +57,21 @@ export function loadSession(): Session | null {
 }
 
 /**
- * Check if a saved session exists
+ * Check if a saved session exists and is not expired
  */
 export function hasSession(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) !== null;
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return false;
+
+    const parsed: Session = JSON.parse(data);
+    if (isSessionExpired(parsed.savedAt)) {
+      // Auto-clear expired session
+      clearSession();
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -72,12 +92,20 @@ export function clearSession(): boolean {
 
 /**
  * Get a summary of the saved session without loading full text
+ * Returns null if no session exists or if session is expired
  */
 export function getSessionSummary(): SessionSummary | null {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return null;
+
     const parsed: Session = JSON.parse(data);
+    if (isSessionExpired(parsed.savedAt)) {
+      // Auto-clear expired session
+      clearSession();
+      return null;
+    }
+
     return {
       currentWordIndex: parsed.currentWordIndex,
       totalWords: parsed.totalWords,
