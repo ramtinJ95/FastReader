@@ -3,18 +3,23 @@ set -e
 set -o pipefail
 
 MAX_ITERATIONS=${1:-20}
+PROMPT_FILE=${2:-"ralph-loop.txt"}
 LOG_DIR="$(pwd)/ralph-logs"
 mkdir -p "$LOG_DIR"
 
-PROMPT='READ all of MASTER_IMPLEMENTATION_GUIDE.md this is master document.
-Read all of plans/PHASE-1-PROJECT-SETUP.md Pick ONE task, Start from the Top of the Document.
-Verify via web/code search. Complete task, verify via CLI/Test output. Commit change. ONLY do one task.
-Update plans/PHASE-1-PROJECT-SETUP with marking a task as completed. If you learn a critical
-operational detail (e.g. how to build), update AGENTS.md. If all tasks done, output exactly: IM DONE
-NEVER GIT PUSH. ONLY COMMIT. DONT USE EGENSKRIVEN TO DO ANYTHING WITH TASKS.'
+# Read prompt from file
+if [[ ! -f "$PROMPT_FILE" ]]; then
+    echo "❌ Error: Prompt file not found: $PROMPT_FILE"
+    echo "   Create the file or specify a different path as the second argument."
+    echo "   Usage: $0 [max_iterations] [prompt_file]"
+    exit 1
+fi
+
+PROMPT=$(cat "$PROMPT_FILE")
 
 echo "🚀 Starting Ralph Loop"
 echo "   Max iterations: $MAX_ITERATIONS"
+echo "   Prompt file: $PROMPT_FILE"
 echo "   Logs: $LOG_DIR/"
 echo ""
 
