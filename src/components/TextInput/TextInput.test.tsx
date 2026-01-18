@@ -73,3 +73,59 @@ describe('Text Input Functionality', () => {
     expect(textarea).toHaveValue('Initial text');
   });
 });
+
+describe('File Upload Functionality', () => {
+  it('should call onFileSelect when valid file selected', () => {
+    const onFileSelect = vi.fn();
+    const { container } = render(<TextInput {...defaultProps} onFileSelect={onFileSelect} />);
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', { value: 1024 });
+
+    Object.defineProperty(fileInput, 'files', { value: [file] });
+    fireEvent.change(fileInput);
+
+    expect(onFileSelect).toHaveBeenCalledWith(file);
+  });
+
+  it('should show error for unsupported file type', () => {
+    const { container } = render(<TextInput {...defaultProps} />);
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test'], 'test.doc', { type: 'application/msword' });
+    Object.defineProperty(file, 'size', { value: 1024 });
+
+    Object.defineProperty(fileInput, 'files', { value: [file] });
+    fireEvent.change(fileInput);
+
+    expect(screen.getByText(/unsupported/i)).toBeInTheDocument();
+  });
+
+  it('should show error for file too large', () => {
+    const { container } = render(<TextInput {...defaultProps} />);
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', { value: 15 * 1024 * 1024 });
+
+    Object.defineProperty(fileInput, 'files', { value: [file] });
+    fireEvent.change(fileInput);
+
+    expect(screen.getByText(/too large/i)).toBeInTheDocument();
+  });
+
+  it('should accept txt files', () => {
+    const onFileSelect = vi.fn();
+    const { container } = render(<TextInput {...defaultProps} onFileSelect={onFileSelect} />);
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+    Object.defineProperty(file, 'size', { value: 1024 });
+
+    Object.defineProperty(fileInput, 'files', { value: [file] });
+    fireEvent.change(fileInput);
+
+    expect(onFileSelect).toHaveBeenCalledWith(file);
+  });
+});
