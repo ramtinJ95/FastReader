@@ -68,3 +68,28 @@ describe('Word Display', () => {
     expect(orp).toHaveTextContent('e');
   });
 });
+
+describe('Fade Transitions', () => {
+  it('should apply opacity style', () => {
+    const { container } = render(<RSVPDisplay word="hello" opacity={0.5} />);
+
+    const wordContainer = container.querySelector('.word-container');
+    expect(wordContainer).toHaveStyle({ opacity: '0.5' });
+  });
+
+  it('should apply fade transition when enabled', () => {
+    const { container } = render(
+      <RSVPDisplay word="hello" fadeEnabled={true} fadeDuration={200} />
+    );
+
+    const wordContainer = container.querySelector('.word-container');
+    expect(wordContainer).toHaveStyle({ transition: 'opacity 200ms ease-in-out' });
+  });
+
+  it('should not apply transition when fade disabled', () => {
+    const { container } = render(<RSVPDisplay word="hello" fadeEnabled={false} />);
+
+    const wordContainer = container.querySelector('.word-container');
+    expect(wordContainer).toHaveStyle({ transition: 'none' });
+  });
+});
