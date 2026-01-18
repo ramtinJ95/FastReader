@@ -93,3 +93,68 @@ describe('Fade Transitions', () => {
     expect(wordContainer).toHaveStyle({ transition: 'none' });
   });
 });
+
+describe('Multi-Word Mode', () => {
+  const wordGroup = ['one', 'two', 'three', 'four', 'five'];
+
+  it('should display single word when multiWordEnabled is false', () => {
+    const { container } = render(
+      <RSVPDisplay word="hello" wordGroup={wordGroup} multiWordEnabled={false} />
+    );
+
+    // Should show "hello", not the word group
+    const orp = container.querySelector('.orp');
+    expect(orp).toHaveTextContent('e'); // ORP of "hello"
+  });
+
+  it('should display word from group when multiWordEnabled is true', () => {
+    const { container } = render(
+      <RSVPDisplay
+        wordGroup={wordGroup}
+        highlightIndex={2}
+        multiWordEnabled={true}
+      />
+    );
+
+    // "three" = 5 letters, ORP index = 1 -> 'h'
+    const orp = container.querySelector('.orp');
+    expect(orp).toHaveTextContent('h');
+  });
+
+  it('should show context words before highlighted word', () => {
+    const { container } = render(
+      <RSVPDisplay
+        wordGroup={wordGroup}
+        highlightIndex={2}
+        multiWordEnabled={true}
+      />
+    );
+
+    const beforeOrp = container.querySelector('.before-orp');
+    expect(beforeOrp?.textContent).toContain('one');
+    expect(beforeOrp?.textContent).toContain('two');
+  });
+
+  it('should show context words after highlighted word', () => {
+    const { container } = render(
+      <RSVPDisplay
+        wordGroup={wordGroup}
+        highlightIndex={2}
+        multiWordEnabled={true}
+      />
+    );
+
+    const afterOrp = container.querySelector('.after-orp');
+    expect(afterOrp?.textContent).toContain('four');
+    expect(afterOrp?.textContent).toContain('five');
+  });
+
+  it('should apply multi-mode class', () => {
+    const { container } = render(
+      <RSVPDisplay wordGroup={wordGroup} highlightIndex={0} multiWordEnabled={true} />
+    );
+
+    const wordContainer = container.querySelector('.word-container');
+    expect(wordContainer).toHaveClass('multi-mode');
+  });
+});
