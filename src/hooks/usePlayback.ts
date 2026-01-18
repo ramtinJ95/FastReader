@@ -87,8 +87,8 @@ export function usePlayback({
   // Calculate progress
   const progress = words.length > 0 ? (currentWordIndex / words.length) * 100 : 0;
 
-  // Get current word
-  const currentWord = words[currentWordIndex - 1] || (words.length > 0 ? words[0] : '');
+  // Get current word (empty when stopped/at index 0)
+  const currentWord = currentWordIndex > 0 ? words[currentWordIndex - 1] : '';
 
   // Clear all timers
   const clearTimers = useCallback(() => {
