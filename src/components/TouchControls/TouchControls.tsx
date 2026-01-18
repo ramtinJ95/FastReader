@@ -21,7 +21,7 @@ export function TouchControls({
   onIncreaseWPM,
 }: TouchControlsProps) {
   return (
-    <div className="touch-controls">
+    <div className="touch-controls" role="toolbar" aria-label="Reading controls">
       <button className="touch-btn" onClick={onSkipBackward} aria-label="Skip back 5 words">
         -5
       </button>
