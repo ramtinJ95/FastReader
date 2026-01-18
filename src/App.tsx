@@ -3,9 +3,11 @@ import { RSVPDisplay } from './components/RSVPDisplay';
 import { Controls } from './components/Controls';
 import { ProgressBar } from './components/ProgressBar';
 import { Settings } from './components/Settings';
+import { TextInput } from './components/TextInput';
 import { JumpToDialog } from './components/dialogs';
 import { usePlayback } from './hooks/usePlayback';
 import { formatTimeRemaining, extractWordFrame } from './lib/rsvp-utils';
+import { parseFile } from './lib/file-parsers';
 import { DEFAULT_SETTINGS, type Settings as SettingsType } from './types';
 import './App.css';
 
@@ -31,19 +33,61 @@ const SearchIcon = () => (
   </svg>
 );
 
+// File icon
+const FileIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+  </svg>
+);
+
 function App() {
+  const [text, setText] = useState(SAMPLE_TEXT);
   const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTextInput, setShowTextInput] = useState(false);
   const [showJumpTo, setShowJumpTo] = useState(false);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   const playback = usePlayback({
-    text: SAMPLE_TEXT,
+    text,
     settings,
   });
 
   const handleSettingsChange = useCallback((changes: Partial<SettingsType>) => {
     setSettings((prev) => ({ ...prev, ...changes }));
   }, []);
+
+  const handleTextApply = useCallback(
+    (newText: string) => {
+      setText(newText);
+      playback.setText(newText);
+    },
+    [playback]
+  );
+
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      setIsLoadingFile(true);
+      setLoadingMessage(`Parsing ${file.name}...`);
+
+      try {
+        const extractedText = await parseFile(file);
+        setText(extractedText);
+        playback.setText(extractedText);
+        setShowTextInput(false);
+      } catch (error) {
+        console.error('Failed to parse file:', error);
+        setLoadingMessage(
+          error instanceof Error ? error.message : 'Failed to parse file'
+        );
+      } finally {
+        setIsLoadingFile(false);
+        setLoadingMessage('');
+      }
+    },
+    [playback]
+  );
 
   const isFocusMode = playback.isPlaying || playback.isPaused;
   const timeRemaining = formatTimeRemaining(
@@ -64,6 +108,13 @@ function App() {
         <header className="header">
           <h1>FastReader</h1>
           <div className="header-actions">
+            <button
+              className="icon-btn"
+              onClick={() => setShowTextInput(true)}
+              title="Load Text"
+            >
+              <FileIcon />
+            </button>
             <button
               className="icon-btn"
               onClick={() => setShowJumpTo(true)}
@@ -131,6 +182,17 @@ function App() {
           settings={settings}
           onChange={handleSettingsChange}
           onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showTextInput && (
+        <TextInput
+          text={text}
+          isLoading={isLoadingFile}
+          loadingMessage={loadingMessage}
+          onApply={handleTextApply}
+          onFileSelect={handleFileSelect}
+          onClose={() => setShowTextInput(false)}
         />
       )}
     </div>
