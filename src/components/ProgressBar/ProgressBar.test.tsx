@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ProgressBar } from './ProgressBar';
 
 const defaultProps = {
@@ -43,5 +43,67 @@ describe('Stats Display', () => {
     render(<ProgressBar {...defaultProps} minimal={true} />);
     expect(screen.queryByText('50 / 100')).not.toBeInTheDocument();
     expect(screen.queryByText('300 WPM')).not.toBeInTheDocument();
+  });
+});
+
+describe('Click-to-Seek', () => {
+  it('should call onSeek when clicked', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+
+    // Mock getBoundingClientRect
+    Object.defineProperty(progressContainer, 'getBoundingClientRect', {
+      value: () => ({ left: 0, width: 100 }),
+    });
+
+    fireEvent.click(progressContainer!, { clientX: 50 });
+    expect(onSeek).toHaveBeenCalledWith(50);
+  });
+
+  it('should not call onSeek when not clickable', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} clickable={false} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.click(progressContainer!);
+    expect(onSeek).not.toHaveBeenCalled();
+  });
+
+  it('should clamp seek percentage to 0-100', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+
+    Object.defineProperty(progressContainer, 'getBoundingClientRect', {
+      value: () => ({ left: 0, width: 100 }),
+    });
+
+    // Click beyond bounds
+    fireEvent.click(progressContainer!, { clientX: 150 });
+    expect(onSeek).toHaveBeenCalledWith(100);
+
+    fireEvent.click(progressContainer!, { clientX: -50 });
+    expect(onSeek).toHaveBeenCalledWith(0);
+  });
+
+  it('should have slider role when clickable', () => {
+    const { container } = render(<ProgressBar {...defaultProps} clickable={true} />);
+    const progressContainer = container.querySelector('.progress-container');
+    expect(progressContainer).toHaveAttribute('role', 'slider');
+  });
+
+  it('should not have slider role when not clickable', () => {
+    const { container } = render(<ProgressBar {...defaultProps} clickable={false} />);
+    const progressContainer = container.querySelector('.progress-container');
+    expect(progressContainer).not.toHaveAttribute('role');
   });
 });
