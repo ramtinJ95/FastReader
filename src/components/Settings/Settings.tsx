@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Settings as SettingsType } from '../../types';
 import './Settings.css';
 
@@ -21,6 +21,8 @@ export interface SettingsProps {
 const WPM_PRESETS = [200, 300, 400, 500];
 
 export function Settings({ settings, onChange, onClose }: SettingsProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   // Helper to update a single setting
   const updateSetting = useCallback(
     <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
@@ -28,6 +30,11 @@ export function Settings({ settings, onChange, onClose }: SettingsProps) {
     },
     [onChange]
   );
+
+  // Focus close button when modal opens
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -42,10 +49,10 @@ export function Settings({ settings, onChange, onClose }: SettingsProps) {
 
   return (
     <div className="settings-overlay" onClick={onClose}>
-      <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={(e) => e.stopPropagation()}>
         <header className="settings-header">
-          <h2>Settings</h2>
-          <button className="close-btn" onClick={onClose} aria-label="Close settings">
+          <h2 id="settings-title">Settings</h2>
+          <button ref={closeButtonRef} className="close-btn" onClick={onClose} aria-label="Close settings">
             <CloseIcon />
           </button>
         </header>
