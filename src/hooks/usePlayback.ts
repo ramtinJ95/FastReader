@@ -28,6 +28,8 @@ export interface UsePlaybackReturn {
   progress: number;
   /** Word opacity for fade effect */
   wordOpacity: number;
+  /** Current effective WPM (accounts for ramp-up) */
+  currentWpm: number;
   /** Start playback */
   play: () => void;
   /** Pause playback */
@@ -66,6 +68,25 @@ export function usePlayback({
   const fadeTimerRef = useRef<number | null>(null);
   const isPlayingRef = useRef(false);
   const currentIndexRef = useRef(0);
+
+  // Refs for WPM ramp-up tracking
+  const accumulatedTimeRef = useRef(0); // Total elapsed time in seconds (preserved across pause/resume)
+  const resumeTimeRef = useRef(0); // Timestamp when playback was last resumed
+  const [currentWpm, setCurrentWpm] = useState(settings.wordsPerMinute);
+
+  // Calculate effective WPM based on ramp-up settings
+  const getEffectiveWpm = useCallback(() => {
+    if (!settings.rampUpEnabled) return settings.wordsPerMinute;
+
+    const totalElapsed =
+      accumulatedTimeRef.current +
+      (isPlayingRef.current ? (Date.now() - resumeTimeRef.current) / 1000 : 0);
+    const progress = Math.min(totalElapsed / settings.rampUpDuration, 1);
+
+    return Math.round(
+      settings.rampUpStartWpm + progress * (settings.wordsPerMinute - settings.rampUpStartWpm)
+    );
+  }, [settings.rampUpEnabled, settings.rampUpStartWpm, settings.rampUpDuration, settings.wordsPerMinute]);
 
   // Keep refs in sync
   useEffect(() => {
@@ -106,6 +127,10 @@ export function usePlayback({
   const showNextWord = useCallback(() => {
     const index = currentIndexRef.current;
 
+    // Update current WPM for display
+    const effectiveWpm = getEffectiveWpm();
+    setCurrentWpm(effectiveWpm);
+
     // Stop if at end
     if (index >= words.length) {
       setIsPlaying(false);
@@ -122,9 +147,11 @@ export function usePlayback({
           setIsPaused(false);
           // Schedule next word after pause
           const word = words[currentIndexRef.current - 1] || '';
+          const currentEffectiveWpm = getEffectiveWpm();
+          setCurrentWpm(currentEffectiveWpm);
           const delay = getWordDelay(
             word,
-            settings.wordsPerMinute,
+            currentEffectiveWpm,
             settings.pauseOnPunctuation,
             settings.punctuationPauseMultiplier,
             settings.wordLengthWPMMultiplier
@@ -161,7 +188,7 @@ export function usePlayback({
     const word = words[newIndex - 1] || '';
     const delay = getWordDelay(
       word,
-      settings.wordsPerMinute,
+      effectiveWpm,
       settings.pauseOnPunctuation,
       settings.punctuationPauseMultiplier,
       settings.wordLengthWPMMultiplier
@@ -172,7 +199,7 @@ export function usePlayback({
         showNextWord();
       }
     }, delay);
-  }, [words, settings, onComplete, onWordChange]);
+  }, [words, settings, onComplete, onWordChange, getEffectiveWpm]);
 
   // Play
   const play = useCallback(() => {
@@ -182,6 +209,11 @@ export function usePlayback({
     setIsPaused(false);
     isPlayingRef.current = true;
 
+    // Reset ramp-up timers when starting fresh
+    accumulatedTimeRef.current = 0;
+    resumeTimeRef.current = Date.now();
+    setCurrentWpm(settings.rampUpEnabled ? settings.rampUpStartWpm : settings.wordsPerMinute);
+
     // Start from beginning if at end
     if (currentIndexRef.current >= words.length) {
       setCurrentWordIndex(0);
@@ -189,15 +221,20 @@ export function usePlayback({
     }
 
     showNextWord();
-  }, [words.length, showNextWord]);
+  }, [words.length, showNextWord, settings.rampUpEnabled, settings.rampUpStartWpm, settings.wordsPerMinute]);
 
   // Pause
   const pause = useCallback(() => {
+    // Save accumulated time for ramp-up before clearing timers
+    if (settings.rampUpEnabled && resumeTimeRef.current > 0) {
+      accumulatedTimeRef.current += (Date.now() - resumeTimeRef.current) / 1000;
+    }
+
     clearTimers();
     setIsPlaying(false);
     setIsPaused(true);
     isPlayingRef.current = false;
-  }, [clearTimers]);
+  }, [clearTimers, settings.rampUpEnabled]);
 
   // Resume
   const resume = useCallback(() => {
@@ -206,11 +243,16 @@ export function usePlayback({
       setIsPaused(false);
       isPlayingRef.current = true;
 
-      // Schedule next word
+      // Track resume time for ramp-up
+      resumeTimeRef.current = Date.now();
+
+      // Schedule next word using effective WPM
       const word = words[currentIndexRef.current - 1] || '';
+      const effectiveWpm = getEffectiveWpm();
+      setCurrentWpm(effectiveWpm);
       const delay = getWordDelay(
         word,
-        settings.wordsPerMinute,
+        effectiveWpm,
         settings.pauseOnPunctuation,
         settings.punctuationPauseMultiplier,
         settings.wordLengthWPMMultiplier
@@ -222,7 +264,7 @@ export function usePlayback({
         }
       }, delay);
     }
-  }, [words, settings, showNextWord]);
+  }, [words, settings, showNextWord, getEffectiveWpm]);
 
   // Stop
   const stop = useCallback(() => {
@@ -233,7 +275,12 @@ export function usePlayback({
     setWordOpacity(1);
     isPlayingRef.current = false;
     currentIndexRef.current = 0;
-  }, [clearTimers]);
+
+    // Reset ramp-up timers
+    accumulatedTimeRef.current = 0;
+    resumeTimeRef.current = 0;
+    setCurrentWpm(settings.wordsPerMinute);
+  }, [clearTimers, settings.wordsPerMinute]);
 
   // Restart
   const restart = useCallback(() => {
@@ -282,6 +329,7 @@ export function usePlayback({
     isPaused,
     progress,
     wordOpacity,
+    currentWpm,
     play,
     pause,
     resume,

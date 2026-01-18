@@ -91,6 +91,60 @@ export function Settings({ settings, onChange, onClose }: SettingsProps) {
             </div>
           </section>
 
+          {/* Speed Ramp-Up Section */}
+          <section className="setting-section">
+            <h3>Speed Ramp-Up</h3>
+
+            <div className="setting-row toggle-row">
+              <label htmlFor="rampup-toggle">Enable ramp-up</label>
+              <button
+                id="rampup-toggle"
+                role="switch"
+                aria-checked={settings.rampUpEnabled}
+                className={`toggle ${settings.rampUpEnabled ? 'active' : ''}`}
+                onClick={() => updateSetting('rampUpEnabled', !settings.rampUpEnabled)}
+              >
+                <span className="toggle-thumb" />
+              </button>
+            </div>
+
+            {settings.rampUpEnabled && (
+              <>
+                <div className="setting-row">
+                  <label htmlFor="rampup-start">Start WPM</label>
+                  <div className="slider-with-value">
+                    <input
+                      id="rampup-start"
+                      type="range"
+                      min={50}
+                      max={1000}
+                      step={25}
+                      value={settings.rampUpStartWpm}
+                      onChange={(e) => updateSetting('rampUpStartWpm', Number(e.target.value))}
+                    />
+                    <span className="value">{settings.rampUpStartWpm}</span>
+                  </div>
+                </div>
+
+                <div className="setting-row">
+                  <label htmlFor="rampup-duration">Ramp duration</label>
+                  <div className="slider-with-value">
+                    <input
+                      id="rampup-duration"
+                      type="range"
+                      min={15}
+                      max={180}
+                      step={15}
+                      value={settings.rampUpDuration}
+                      onChange={(e) => updateSetting('rampUpDuration', Number(e.target.value))}
+                    />
+                    <span className="value">{settings.rampUpDuration}s</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+
           {/* Display Section */}
           <section className="setting-section">
             <h3>Display</h3>
