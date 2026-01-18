@@ -68,3 +68,49 @@ describe('WPM Settings', () => {
     expect(onChange).toHaveBeenCalledWith({ wordsPerMinute: 500 });
   });
 });
+
+describe('Toggle Settings', () => {
+  it('should toggle fade enabled', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} settings={{ ...DEFAULT_SETTINGS, fadeEnabled: true }} />);
+
+    const toggle = screen.getByRole('switch', { name: /enable fade/i });
+    fireEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalledWith({ fadeEnabled: false });
+  });
+
+  it('should show fade duration slider only when fade enabled', () => {
+    const { rerender } = render(
+      <Settings {...defaultProps} settings={{ ...DEFAULT_SETTINGS, fadeEnabled: true }} />
+    );
+    expect(screen.getByLabelText(/fade duration/i)).toBeInTheDocument();
+
+    rerender(
+      <Settings {...defaultProps} settings={{ ...DEFAULT_SETTINGS, fadeEnabled: false }} />
+    );
+    expect(screen.queryByLabelText(/fade duration/i)).not.toBeInTheDocument();
+  });
+
+  it('should toggle punctuation pause', () => {
+    const onChange = vi.fn();
+    render(<Settings {...defaultProps} onChange={onChange} />);
+
+    const toggle = screen.getByRole('switch', { name: /pause on punctuation/i });
+    fireEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalledWith({ pauseOnPunctuation: false });
+  });
+
+  it('should show punctuation multiplier only when enabled', () => {
+    const { rerender } = render(
+      <Settings {...defaultProps} settings={{ ...DEFAULT_SETTINGS, pauseOnPunctuation: true }} />
+    );
+    expect(screen.getByLabelText(/pause multiplier/i)).toBeInTheDocument();
+
+    rerender(
+      <Settings {...defaultProps} settings={{ ...DEFAULT_SETTINGS, pauseOnPunctuation: false }} />
+    );
+    expect(screen.queryByLabelText(/pause multiplier/i)).not.toBeInTheDocument();
+  });
+});
