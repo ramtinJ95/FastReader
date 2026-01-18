@@ -1,8 +1,10 @@
 # FastReader Comprehension Feature Specification
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Status:** Draft
 **Last Updated:** 2026-01-18
+
+> **Note:** This specification incorporates architectural decisions documented in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md). Refer to that document for rationale behind key technical choices.
 
 ---
 
@@ -29,29 +31,33 @@
 
 ### 1.1 Purpose
 
-Add AI-powered reading comprehension questions to FastReader that challenge users' understanding of texts they've read. The system leverages Claude Code running locally on the user's machine to generate contextually relevant questions, tracks question history to avoid repetition, and implements spaced repetition for long-term retention.
+Add AI-powered reading comprehension questions to FastReader that challenge users' understanding of texts they've read. The system leverages AI coding assistants (Claude Code, Codex, OpenCode, etc.) running locally on the user's machine to generate contextually relevant questions, tracks question history to avoid repetition, and implements spaced repetition for long-term retention.
 
 ### 1.2 Key Principles
 
 - **Local-first**: All data stored locally on user's machine
 - **Open-source**: Fully open-source, no proprietary dependencies
 - **Privacy-preserving**: Documents and reading data never leave the user's machine
-- **Claude Code native**: Integrates seamlessly with Claude Code via MCP
-- **Offline-capable reading**: Core RSVP reading works without AI (questions require Claude Code)
+- **CLI-agnostic**: Works with any compatible AI coding assistant via MCP
+- **Offline-capable reading**: Core RSVP reading works without AI (questions require AI CLI)
+- **Real-time sync**: Changes sync instantly between UI and CLI via Server-Sent Events
 
 ### 1.3 Summary
 
 | Aspect | Decision |
 |--------|----------|
-| User model | Single user, no authentication |
+| User model | Single user, no authentication required |
 | Document input | Paste text, file import (.txt, .md, .pdf), URL extraction |
-| Quiz interface | Both FastReader UI and Claude Code conversation |
+| Quiz interface | Both FastReader UI and AI CLI conversation |
 | Question formats | Multiple choice, Short answer (open-ended), Fill-in-the-blank |
 | Comprehension types | Factual recall (~40%), Inference (~40%), Synthesis (~20%) |
 | Quiz triggers | Milestone prompts (25/50/75/100%) + on-demand |
 | Spaced repetition | FSRS-based algorithm for review scheduling |
-| Distribution | Go binary download from GitHub releases |
-| Backend requirement | Required for all comprehension features |
+| Backend | PocketBase (single binary with SQLite) |
+| Custom logic | JavaScript hooks (pb_hooks/) |
+| Text extraction | Separate Go binary (fastreader-extract) |
+| AI integration | CLI-agnostic via MCP server |
+| Real-time sync | PocketBase SSE subscriptions |
 
 ---
 
@@ -63,8 +69,9 @@ Add AI-powered reading comprehension questions to FastReader that challenge user
 2. **Personalized questions**: Generate questions based on the specific text being read, not generic quizzes
 3. **Avoid repetition**: Track question history to never ask the same (or semantically similar) question twice
 4. **Support long-term learning**: Implement spaced repetition to surface questions at optimal review intervals
-5. **Seamless integration**: Work naturally with both FastReader UI and Claude Code workflows
-6. **Easy setup**: Single binary download, minimal configuration
+5. **Seamless integration**: Work naturally with both FastReader UI and AI CLI workflows
+6. **Easy setup**: Minimal binaries, minimal configuration
+7. **CLI flexibility**: Support multiple AI coding assistants (Claude Code, Codex, OpenCode, etc.)
 
 ### 2.2 Non-Goals
 
@@ -87,26 +94,30 @@ Add AI-powered reading comprehension questions to FastReader that challenge user
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌───────────────────┐                    ┌─────────────────────────────┐  │
-│  │                   │      HTTP          │                             │  │
-│  │   FastReader      │◄──────────────────►│   fastreader-server (Go)   │  │
-│  │   (React SPA)     │   localhost:8745   │                             │  │
+│  │                   │      HTTP + SSE    │                             │  │
+│  │   FastReader      │◄──────────────────►│   PocketBase               │  │
+│  │   (React SPA)     │   localhost:8090   │                             │  │
 │  │                   │                    │   ┌─────────────────────┐   │  │
-│  │   - RSVP Display  │                    │   │   SQLite Database   │   │  │
-│  │   - Quiz Modal    │                    │   │   ~/.fastreader/    │   │  │
-│  │   - Progress UI   │                    │   │   fastreader.db     │   │  │
-│  │                   │                    │   └─────────────────────┘   │  │
-│  └───────────────────┘                    │                             │  │
-│                                           └──────────────┬──────────────┘  │
-│                                                          │                  │
-│  ┌───────────────────┐                    ┌──────────────▼──────────────┐  │
-│  │                   │      stdio         │                             │  │
-│  │   Claude Code     │◄──────────────────►│   MCP Server (Node.js)     │  │
-│  │   CLI             │   JSON-RPC 2.0     │                             │  │
-│  │                   │                    │   - Thin HTTP client        │  │
-│  │   - Question gen  │                    │   - Calls fastreader-server │  │
-│  │   - Evaluation    │                    │   - ~100 lines of code      │  │
-│  │   - Review        │                    │                             │  │
-│  └───────────────────┘                    └─────────────────────────────┘  │
+│  │   - RSVP Display  │                    │   │   pb_hooks/         │   │  │
+│  │   - Quiz Modal    │                    │   │   ├── fsrs.pb.js    │   │  │
+│  │   - CLI Spawner   │                    │   │   └── sessions.pb.js│   │  │
+│  │   - SSE Client    │                    │   └─────────────────────┘   │  │
+│  └─────────┬─────────┘                    │                             │  │
+│            │                              │   ┌─────────────────────┐   │  │
+│            │ spawns                       │   │   pb_data/          │   │  │
+│            ▼                              │   │   └── data.db       │   │  │
+│  ┌───────────────────┐                    │   └─────────────────────┘   │  │
+│  │   AI CLI          │                    └──────────────┬──────────────┘  │
+│  │   (claude/codex)  │                                   │                  │
+│  │                   │      stdio         ┌──────────────▼──────────────┐  │
+│  │   - Question gen  │◄──────────────────►│   MCP Server (Node.js)     │  │
+│  │   - Evaluation    │   JSON-RPC 2.0     │                             │  │
+│  │   - Review        │                    │   - Calls PocketBase API    │  │
+│  └───────────────────┘                    │   - ~150 lines of code      │  │
+│                                           └─────────────────────────────┘  │
+│  ┌───────────────────┐                                                     │
+│  │ fastreader-extract│  (standalone CLI for PDF/URL text extraction)      │
+│  └───────────────────┘                                                     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -115,120 +126,296 @@ Add AI-powered reading comprehension questions to FastReader that challenge user
 
 | Component | Language | Responsibility |
 |-----------|----------|----------------|
-| **FastReader** | React/TypeScript | RSVP reading, quiz UI, progress display |
-| **fastreader-server** | Go | REST API, SQLite database, business logic |
-| **MCP Server** | Node.js/TypeScript | Translate MCP calls to REST API calls for Claude Code |
-| **Claude Code** | - | Question generation, answer evaluation, reviews |
+| **FastReader** | React/TypeScript | RSVP reading, quiz UI, SSE subscription, CLI spawning |
+| **PocketBase** | Go (binary) | REST API, SQLite database, real-time subscriptions |
+| **pb_hooks/** | JavaScript | FSRS calculations, milestone detection, custom validation |
+| **MCP Server** | Node.js/TypeScript | Translate MCP calls to PocketBase API for AI CLI |
+| **fastreader-extract** | Go | PDF text extraction, URL content extraction |
+| **AI CLI** | Any | Question generation, answer evaluation (via MCP) |
 
 ### 3.3 Data Flow
 
 ```
 Document Input Flow:
-User → FastReader UI → POST /api/documents → SQLite → Document stored
+User → FastReader UI → PocketBase API → SQLite → Document stored
+       (or)
+User → fastreader-extract → JSON output → FastReader → PocketBase
 
-Question Generation Flow:
-User → Claude Code → MCP Server → GET /api/sessions/current → SQLite
-                  ↓
-Claude generates questions
-                  ↓
-          MCP Server → POST /api/questions → SQLite → Questions stored
+Question Generation Flow (UI-triggered):
+User clicks "Generate Quiz" in FastReader
+        ↓
+FastReader spawns AI CLI in background with prompt
+        ↓
+AI CLI → MCP Server → PocketBase API (get session, get history)
+        ↓
+AI CLI generates questions
+        ↓
+AI CLI → MCP Server → PocketBase API (save questions)
+        ↓
+PocketBase emits SSE event
+        ↓
+FastReader receives event → Quiz modal appears with questions
 
 Quiz Flow (FastReader UI):
-FastReader → GET /api/sessions/:id/quiz → Questions returned
-User answers → POST /api/questions/:id/answer → Attempt recorded + FSRS updated
+FastReader → GET /api/collections/questions/records → Questions returned
+User answers → POST /api/collections/question_attempts/records → Attempt recorded
+        ↓
+pb_hooks/fsrs.pb.js calculates next review → Updates attempt record
 
-Quiz Flow (Claude Code):
-User asks Claude → MCP Server → GET /api/questions/due → Due questions returned
-User answers in chat → Claude evaluates → MCP Server → POST /api/questions/:id/answer
+Quiz Flow (AI CLI):
+User asks AI CLI for review → MCP Server → GET questions (filter: due_at <= now)
+User answers in chat → AI evaluates → MCP Server → POST attempt record
 ```
 
 ---
 
 ## 4. Components
 
-### 4.1 fastreader-server (Go)
+### 4.1 PocketBase Backend
 
-The main backend service handling all data persistence and business logic.
+PocketBase provides the entire backend as a single binary with embedded SQLite.
 
 #### 4.1.1 Directory Structure
 
 ```
-fastreader-server/
-├── cmd/
-│   └── server/
-│       └── main.go              # Entry point
-├── internal/
-│   ├── config/
-│   │   └── config.go            # Configuration management
-│   ├── db/
-│   │   ├── db.go                # SQLite connection
-│   │   ├── migrations.go        # Schema migrations
-│   │   └── queries.go           # SQL queries
-│   ├── handlers/
-│   │   ├── documents.go         # Document CRUD
-│   │   ├── sessions.go          # Reading session management
-│   │   ├── questions.go         # Question storage & retrieval
-│   │   └── health.go            # Health check endpoint
-│   ├── models/
-│   │   ├── document.go
-│   │   ├── session.go
-│   │   ├── question.go
-│   │   └── attempt.go
-│   ├── services/
-│   │   ├── document_service.go  # Document processing (URL fetch, PDF parse)
-│   │   ├── session_service.go
-│   │   ├── question_service.go
-│   │   └── fsrs_service.go      # Spaced repetition calculations
-│   └── router/
-│       └── router.go            # HTTP router setup
-├── pkg/
-│   └── extractor/
-│       ├── pdf.go               # PDF text extraction
-│       ├── url.go                # URL content extraction
-│       └── text.go               # Plain text processing
-├── go.mod
-├── go.sum
-└── Makefile
+fastreader-backend/
+├── pocketbase              # PocketBase binary (downloaded)
+├── pb_data/
+│   └── data.db             # SQLite database (auto-created)
+├── pb_hooks/
+│   ├── fsrs.pb.js          # FSRS spaced repetition algorithm
+│   ├── sessions.pb.js      # Milestone detection hooks
+│   ├── questions.pb.js     # Question validation hooks
+│   └── main.pb.js          # Hook registrations and utilities
+├── pb_migrations/          # Auto-generated schema migrations
+└── pb_public/              # Optional: serve FastReader SPA
 ```
 
 #### 4.1.2 Configuration
 
-```yaml
-# ~/.fastreader/config.yaml (auto-created with defaults)
-server:
-  port: 8745
-  host: "127.0.0.1"  # Local only, never expose externally
+PocketBase is configured via CLI flags and Dashboard:
 
-database:
-  path: "~/.fastreader/fastreader.db"
+```bash
+# Start PocketBase
+./pocketbase serve --http="127.0.0.1:8090"
 
-fsrs:
-  # FSRS algorithm parameters
-  request_retention: 0.9
-  maximum_interval: 36500  # 100 years in days
-  weights: [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61]
+# With auto-migration (default, generates migration files on schema changes)
+./pocketbase serve --automigrate
+
+# Custom data directory
+./pocketbase serve --dir="/path/to/pb_data"
 ```
 
-### 4.2 MCP Server (Node.js)
+**FastReader-specific settings** (stored in PocketBase settings):
 
-A thin wrapper that translates MCP protocol calls to REST API calls.
+```json
+{
+  "fastreader": {
+    "fsrs": {
+      "request_retention": 0.9,
+      "maximum_interval": 36500,
+      "weights": [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61]
+    },
+    "ai_assistant": {
+      "command": "claude",
+      "args": ["--print"],
+      "timeout": 300
+    }
+  }
+}
+```
 
-#### 4.2.1 Directory Structure
+### 4.2 JavaScript Hooks (pb_hooks/)
+
+Custom business logic implemented as PocketBase JavaScript hooks.
+
+#### 4.2.1 FSRS Implementation
+
+```javascript
+// pb_hooks/fsrs.pb.js
+
+/// <reference path="../pb_data/types.d.ts" />
+
+// FSRS algorithm constants
+const DECAY = -0.5;
+const FACTOR = 19 / 81;
+
+/**
+ * Calculate new stability after review
+ * @param {number} d - Current difficulty
+ * @param {number} s - Current stability
+ * @param {number} rating - User rating (1-4)
+ * @returns {number} New stability
+ */
+function nextStability(d, s, rating) {
+    if (rating === 1) {
+        // Again - memory lapsed
+        return Math.max(0.1, s * 0.2);
+    }
+
+    const hardPenalty = (rating === 2) ? 1.2 : 1;
+    const easyBonus = (rating === 4) ? 1.3 : 1;
+
+    return s * (1 + Math.exp(11.0) *
+        Math.pow(d, -0.5) *
+        (Math.pow(s, -0.2) - 1) *
+        hardPenalty * easyBonus);
+}
+
+/**
+ * Calculate new difficulty after review
+ * @param {number} d - Current difficulty
+ * @param {number} rating - User rating (1-4)
+ * @returns {number} New difficulty (clamped 1-10)
+ */
+function nextDifficulty(d, rating) {
+    const delta = (rating - 3) * 0.5;
+    return Math.min(10, Math.max(1, d + delta));
+}
+
+/**
+ * Calculate interval in days until next review
+ * @param {number} s - Stability
+ * @param {number} requestedRetention - Target retention rate
+ * @returns {number} Days until next review
+ */
+function nextInterval(s, requestedRetention) {
+    const interval = Math.round(s * Math.log(requestedRetention) / Math.log(0.9));
+    return Math.max(1, interval);
+}
+
+/**
+ * Determine new learning state
+ * @param {number} currentState - Current state (0-3)
+ * @param {number} rating - User rating (1-4)
+ * @returns {number} New state
+ */
+function nextState(currentState, rating) {
+    // States: 0=New, 1=Learning, 2=Review, 3=Relearning
+    if (rating === 1) {
+        return currentState === 0 ? 1 : 3; // Learning or Relearning
+    }
+    if (currentState === 0 || currentState === 1) {
+        return rating >= 3 ? 2 : 1; // Graduate to Review or stay Learning
+    }
+    if (currentState === 3) {
+        return rating >= 3 ? 2 : 3; // Graduate back or stay Relearning
+    }
+    return 2; // Stay in Review
+}
+
+// Hook: After creating a question attempt, calculate FSRS values
+onRecordAfterCreateSuccess((e) => {
+    const record = e.record;
+    const rating = record.getInt("rating");
+
+    if (!rating || rating < 1 || rating > 4) {
+        return; // No rating provided, skip FSRS calculation
+    }
+
+    // Get current values (may be from previous attempt or defaults)
+    let stability = record.getFloat("stability") || 1.0;
+    let difficulty = record.getFloat("difficulty") || 5.0;
+    let state = record.getInt("state") || 0;
+    let reps = record.getInt("reps") || 0;
+    let lapses = record.getInt("lapses") || 0;
+
+    // Calculate new values
+    const newStability = nextStability(difficulty, stability, rating);
+    const newDifficulty = nextDifficulty(difficulty, rating);
+    const newState = nextState(state, rating);
+    const interval = nextInterval(newStability, 0.9);
+
+    // Calculate next review date
+    const dueAt = new Date();
+    dueAt.setDate(dueAt.getDate() + interval);
+
+    // Update counters
+    reps += 1;
+    if (rating === 1) {
+        lapses += 1;
+    }
+
+    // Update the record
+    record.set("stability", newStability);
+    record.set("difficulty", newDifficulty);
+    record.set("state", newState);
+    record.set("due_at", dueAt.toISOString());
+    record.set("reps", reps);
+    record.set("lapses", lapses);
+
+    $app.save(record);
+}, "question_attempts");
+
+module.exports = {
+    nextStability,
+    nextDifficulty,
+    nextInterval,
+    nextState
+};
+```
+
+#### 4.2.2 Session Milestone Detection
+
+```javascript
+// pb_hooks/sessions.pb.js
+
+/// <reference path="../pb_data/types.d.ts" />
+
+const MILESTONES = [25, 50, 75, 100];
+
+// Hook: After updating a session, check for milestones
+onRecordAfterUpdateSuccess((e) => {
+    const session = e.record;
+    const progress = session.getFloat("progress_percent");
+
+    // Find the highest milestone reached
+    const reachedMilestones = MILESTONES.filter(m => progress >= m);
+    if (reachedMilestones.length === 0) return;
+
+    const highestMilestone = Math.max(...reachedMilestones);
+
+    // Check if this milestone already exists
+    const existing = $app.findFirstRecordByFilter(
+        "session_milestones",
+        `session = "${session.id}" && milestone_percent = ${highestMilestone}`
+    );
+
+    if (existing) return; // Already recorded
+
+    // Create milestone record
+    const collection = $app.findCollectionByNameOrId("session_milestones");
+    const milestone = new Record(collection, {
+        session: session.id,
+        milestone_percent: highestMilestone,
+        quiz_prompted: false,
+        quiz_completed: false
+    });
+
+    $app.save(milestone);
+}, "sessions");
+```
+
+### 4.3 MCP Server (Node.js)
+
+A thin wrapper that translates MCP protocol calls to PocketBase REST API calls.
+
+#### 4.3.1 Directory Structure
 
 ```
 fastreader-mcp/
 ├── src/
 │   ├── index.ts                 # MCP server entry point
 │   ├── tools.ts                 # Tool definitions
-│   └── api-client.ts            # HTTP client for fastreader-server
+│   └── pocketbase-client.ts     # PocketBase API client
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
-#### 4.2.2 Tool Definitions
+#### 4.3.2 Tool Definitions
 
-The MCP server exposes the following tools to Claude Code:
+The MCP server exposes the following tools to AI CLIs:
 
 | Tool Name | Description | Parameters |
 |-----------|-------------|------------|
@@ -241,309 +428,279 @@ The MCP server exposes the following tools to Claude Code:
 | `fastreader_get_due_questions` | Get questions due for spaced repetition review | `limit?: number` |
 | `fastreader_get_session_stats` | Get reading and quiz statistics | `documentId?: string` |
 
+### 4.4 Text Extractor (fastreader-extract)
+
+A standalone Go binary for extracting text from PDFs and URLs.
+
+#### 4.4.1 Directory Structure
+
+```
+fastreader-extract/
+├── cmd/
+│   └── fastreader-extract/
+│       └── main.go              # Entry point
+├── internal/
+│   ├── pdf/
+│   │   └── extractor.go         # PDF text extraction
+│   └── url/
+│       └── extractor.go         # URL content extraction
+├── go.mod
+├── go.sum
+└── Makefile
+```
+
+#### 4.4.2 Usage
+
+```bash
+# Extract from URL
+fastreader-extract url "https://example.com/article" --output json
+
+# Extract from PDF
+fastreader-extract pdf document.pdf --output json
+
+# Extract from URL with custom title
+fastreader-extract url "https://example.com/article" --title "Custom Title" --output json
+```
+
+#### 4.4.3 Output Format
+
+```json
+{
+  "title": "Article Title",
+  "content": "Extracted text content...",
+  "word_count": 1542,
+  "source_type": "url",
+  "source_path": "https://example.com/article"
+}
+```
+
 ---
 
 ## 5. Data Models
 
-### 5.1 SQLite Schema
+### 5.1 PocketBase Collections
 
-```sql
--- Enable foreign keys
-PRAGMA foreign_keys = ON;
+Collections are defined via PocketBase Dashboard or JavaScript migrations. Below is the schema specification.
 
--- Documents table
-CREATE TABLE documents (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    source_type TEXT NOT NULL CHECK (source_type IN ('paste', 'file', 'url')),
-    source_path TEXT,              -- Original file path or URL
-    file_type TEXT,                -- 'txt', 'md', 'pdf', or NULL for paste
-    word_count INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+#### 5.1.1 `documents` Collection
 
-CREATE INDEX idx_documents_created ON documents(created_at DESC);
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| title | Text | Yes | Document title |
+| content | Text | Yes | Full text content |
+| source_type | Select | Yes | Options: `paste`, `file`, `url` |
+| source_path | Text | No | Original file path or URL |
+| file_type | Select | No | Options: `txt`, `md`, `pdf` |
+| word_count | Number | Yes | Total words in document |
 
--- Reading sessions
-CREATE TABLE sessions (
-    id TEXT PRIMARY KEY,
-    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    current_word_index INTEGER DEFAULT 0,
-    total_words INTEGER NOT NULL,
-    progress_percent REAL DEFAULT 0.0,
-    wpm_setting INTEGER DEFAULT 300,
-    chunk_size INTEGER DEFAULT 1,
-    is_active BOOLEAN DEFAULT TRUE,
-    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    completed_at DATETIME
-);
+**API Rules:**
+- List: Allow all
+- View: Allow all
+- Create: Allow all
+- Update: Allow all
+- Delete: Allow all
 
-CREATE INDEX idx_sessions_document ON sessions(document_id);
-CREATE INDEX idx_sessions_active ON sessions(is_active) WHERE is_active = TRUE;
+#### 5.1.2 `sessions` Collection
 
--- Generated questions
-CREATE TABLE questions (
-    id TEXT PRIMARY KEY,
-    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL,
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| document | Relation | Yes | → documents |
+| current_word_index | Number | No | Default: 0 |
+| total_words | Number | Yes | From document.word_count |
+| progress_percent | Number | No | Default: 0.0 |
+| wpm_setting | Number | No | Default: 300 |
+| chunk_size | Number | No | Default: 1 |
+| is_active | Bool | No | Default: true |
+| completed_at | DateTime | No | Set when finished |
 
-    -- Question content
-    question_text TEXT NOT NULL,
-    question_type TEXT NOT NULL CHECK (question_type IN ('multiple_choice', 'short_answer', 'fill_in_blank')),
-    comprehension_type TEXT NOT NULL CHECK (comprehension_type IN ('factual_recall', 'inference', 'synthesis')),
-    difficulty TEXT CHECK (difficulty IN ('easy', 'medium', 'hard')),
+**API Rules:**
+- List: Allow all
+- View: Allow all
+- Create: Allow all
+- Update: Allow all
+- Delete: Allow all
 
-    -- For multiple_choice format
-    options_json TEXT,                    -- JSON object: {"A": "...", "B": "...", "C": "...", "D": "..."}
-    correct_answer TEXT NOT NULL,         -- For MCQ: "A", "B", etc. For others: model answer
-    distractor_explanations_json TEXT,    -- JSON object explaining why each option is correct/incorrect
+#### 5.1.3 `questions` Collection
 
-    -- For short_answer format
-    ideal_answer TEXT,                    -- Model answer (1-3 sentences)
-    acceptable_variations_json TEXT,      -- JSON array of alternative correct phrasings
-    required_concepts_json TEXT,          -- JSON array of concepts that must appear
-    scoring_rubric_json TEXT,             -- JSON: {"full_credit": "...", "partial_credit": "...", "no_credit": "..."}
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| document | Relation | Yes | → documents |
+| session | Relation | No | → sessions |
+| question_text | Text | Yes | The question being asked |
+| question_type | Select | Yes | `multiple_choice`, `short_answer`, `fill_in_blank` |
+| comprehension_type | Select | Yes | `factual_recall`, `inference`, `synthesis` |
+| difficulty | Select | No | `easy`, `medium`, `hard` |
+| options | JSON | No | For MCQ: `{"A": "...", "B": "...", "C": "...", "D": "..."}` |
+| correct_answer | Text | Yes | For MCQ: letter; for others: model answer |
+| distractor_explanations | JSON | No | For MCQ: explanations per option |
+| ideal_answer | Text | No | For short_answer: model response |
+| acceptable_variations | JSON | No | Array of alternative correct phrasings |
+| required_concepts | JSON | No | Array of concepts that must appear |
+| scoring_rubric | JSON | No | `{full_credit, partial_credit, no_credit}` |
+| sentence_with_blank | Text | No | For fill_in_blank format |
+| correct_answers | JSON | No | Array of acceptable fill-in answers |
+| context_hint | Text | No | Optional hint for answer location |
+| rationale | Text | Yes | Explanation of correct answer |
+| passage_evidence | Text | No | Supporting quote from passage |
+| passage_location | Text | No | Paragraph/section reference |
+| chunk_start_index | Number | No | Word position where relevant text starts |
+| chunk_end_index | Number | No | Word position where relevant text ends |
 
-    -- For fill_in_blank format
-    sentence_with_blank TEXT,             -- "The _____ was the primary cause of..."
-    correct_answers_json TEXT,            -- JSON array of acceptable fill-in answers
-    context_hint TEXT,                    -- Optional hint for where to find answer
+**API Rules:**
+- List: Allow all
+- View: Allow all
+- Create: Allow all
+- Update: Allow all
+- Delete: Allow all
 
-    -- Required for all formats
-    rationale TEXT NOT NULL,              -- Detailed explanation of why the answer is correct
-    passage_evidence TEXT,                -- Direct quote(s) from passage supporting answer
-    passage_location TEXT,                -- Paragraph number or section reference
+#### 5.1.4 `question_attempts` Collection
 
-    -- Position metadata
-    chunk_start_index INTEGER,            -- Word index where relevant text starts
-    chunk_end_index INTEGER,              -- Word index where relevant text ends
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| question | Relation | Yes | → questions |
+| user_answer | Text | No | User's response |
+| is_correct | Bool | No | Whether answer was correct |
+| time_spent_ms | Number | No | Time to answer in milliseconds |
+| rating | Number | No | FSRS rating: 1=Again, 2=Hard, 3=Good, 4=Easy |
+| stability | Number | No | FSRS stability value |
+| difficulty | Number | No | FSRS difficulty value (1-10) |
+| due_at | DateTime | No | Next scheduled review |
+| state | Number | No | 0=New, 1=Learning, 2=Review, 3=Relearning |
+| reps | Number | No | Total review count |
+| lapses | Number | No | Times forgotten (rating=1) |
 
-    -- Timestamps
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+**API Rules:**
+- List: Allow all
+- View: Allow all
+- Create: Allow all
+- Update: Allow all (needed for FSRS hook)
+- Delete: Allow all
 
-CREATE INDEX idx_questions_document ON questions(document_id);
-CREATE INDEX idx_questions_session ON questions(session_id);
-CREATE INDEX idx_questions_comprehension_type ON questions(comprehension_type);
+**Note:** The `pb_hooks/fsrs.pb.js` hook automatically calculates and updates FSRS fields after creation.
 
--- Question attempts and spaced repetition state
-CREATE TABLE question_attempts (
-    id TEXT PRIMARY KEY,
-    question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+#### 5.1.5 `session_milestones` Collection
 
-    -- Attempt data
-    user_answer TEXT,
-    is_correct BOOLEAN,
-    time_spent_ms INTEGER,
-    rating INTEGER CHECK (rating BETWEEN 1 AND 4),  -- 1=Again, 2=Hard, 3=Good, 4=Easy
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| session | Relation | Yes | → sessions |
+| milestone_percent | Number | Yes | 25, 50, 75, or 100 |
+| quiz_prompted | Bool | No | Default: false |
+| quiz_completed | Bool | No | Default: false |
 
-    -- FSRS spaced repetition fields
-    stability REAL DEFAULT 0.0,
-    difficulty REAL DEFAULT 0.0,
-    due_at DATETIME,
-    state INTEGER DEFAULT 0 CHECK (state BETWEEN 0 AND 3),  -- 0=New, 1=Learning, 2=Review, 3=Relearning
-    reps INTEGER DEFAULT 0,
-    lapses INTEGER DEFAULT 0,
-    last_review_at DATETIME,
+**API Rules:**
+- List: Allow all
+- View: Allow all
+- Create: Allow all
+- Update: Allow all
+- Delete: Allow all
 
-    -- Timestamps
-    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+**Unique constraint:** `session` + `milestone_percent`
 
-CREATE INDEX idx_attempts_question ON question_attempts(question_id);
-CREATE INDEX idx_attempts_due ON question_attempts(due_at) WHERE due_at IS NOT NULL;
-
--- Track which questions have been asked to avoid repetition
--- (Latest attempt per question determines current spaced rep state)
-CREATE VIEW question_review_state AS
-SELECT
-    q.id AS question_id,
-    q.document_id,
-    q.question_text,
-    q.question_type,
-    a.stability,
-    a.difficulty,
-    a.due_at,
-    a.state,
-    a.reps,
-    a.lapses,
-    a.last_review_at
-FROM questions q
-LEFT JOIN question_attempts a ON a.id = (
-    SELECT id FROM question_attempts
-    WHERE question_id = q.id
-    ORDER BY attempted_at DESC
-    LIMIT 1
-);
-
--- Milestone checkpoints for progress-based quiz triggers
-CREATE TABLE session_milestones (
-    id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    milestone_percent INTEGER NOT NULL CHECK (milestone_percent IN (25, 50, 75, 100)),
-    reached_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    quiz_prompted BOOLEAN DEFAULT FALSE,
-    quiz_completed BOOLEAN DEFAULT FALSE,
-    UNIQUE(session_id, milestone_percent)
-);
-
-CREATE INDEX idx_milestones_session ON session_milestones(session_id);
-```
-
-### 5.2 TypeScript Types (for MCP Server and FastReader)
+### 5.2 TypeScript Types
 
 ```typescript
-// Shared types between MCP server and FastReader
+// Shared types for FastReader and MCP Server
 
 interface Document {
   id: string;
   title: string;
   content: string;
-  sourceType: 'paste' | 'file' | 'url';
-  sourcePath?: string;
-  fileType?: 'txt' | 'md' | 'pdf';
-  wordCount: number;
-  createdAt: string;
-  updatedAt: string;
+  source_type: 'paste' | 'file' | 'url';
+  source_path?: string;
+  file_type?: 'txt' | 'md' | 'pdf';
+  word_count: number;
+  created: string;
+  updated: string;
 }
 
 interface Session {
   id: string;
-  documentId: string;
-  currentWordIndex: number;
-  totalWords: number;
-  progressPercent: number;
-  wpmSetting: number;
-  chunkSize: number;
-  isActive: boolean;
-  startedAt: string;
-  lastActiveAt: string;
-  completedAt?: string;
+  document: string;  // Relation ID
+  current_word_index: number;
+  total_words: number;
+  progress_percent: number;
+  wpm_setting: number;
+  chunk_size: number;
+  is_active: boolean;
+  completed_at?: string;
+  created: string;
+  updated: string;
 }
 
 interface Question {
   id: string;
-  documentId: string;
-  sessionId?: string;
+  document: string;
+  session?: string;
+  question_text: string;
+  question_type: 'multiple_choice' | 'short_answer' | 'fill_in_blank';
+  comprehension_type: 'factual_recall' | 'inference' | 'synthesis';
+  difficulty?: 'easy' | 'medium' | 'hard';
 
-  // Core question content
-  questionText: string;
-  questionType: 'multiple_choice' | 'short_answer' | 'fill_in_blank';
-  comprehensionType: 'factual_recall' | 'inference' | 'synthesis';
-  difficulty: 'easy' | 'medium' | 'hard';
+  // Multiple choice fields
+  options?: { A: string; B: string; C: string; D: string };
+  correct_answer: string;
+  distractor_explanations?: { A: string; B: string; C: string; D: string };
 
-  // For multiple_choice format
-  options?: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
-  };
-  correctAnswer: string;  // For MCQ: "A"|"B"|"C"|"D", for others: model answer
-  distractorExplanations?: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
+  // Short answer fields
+  ideal_answer?: string;
+  acceptable_variations?: string[];
+  required_concepts?: string[];
+  scoring_rubric?: {
+    full_credit: string;
+    partial_credit: string;
+    no_credit: string;
   };
 
-  // For short_answer format
-  idealAnswer?: string;
-  acceptableVariations?: string[];
-  requiredConcepts?: string[];
-  scoringRubric?: {
-    fullCredit: string;
-    partialCredit: string;
-    noCredit: string;
-  };
+  // Fill in blank fields
+  sentence_with_blank?: string;
+  correct_answers?: string[];
+  context_hint?: string;
 
-  // For fill_in_blank format
-  sentenceWithBlank?: string;
-  correctAnswers?: string[];  // Array of acceptable fill-in answers
-  contextHint?: string;
-
-  // Required for all formats
+  // Common fields
   rationale: string;
-  passageEvidence?: string;
-  passageLocation?: string;
-
-  // Position metadata
-  chunkStartIndex?: number;
-  chunkEndIndex?: number;
-  createdAt: string;
+  passage_evidence?: string;
+  passage_location?: string;
+  chunk_start_index?: number;
+  chunk_end_index?: number;
+  created: string;
 }
 
 interface QuestionAttempt {
   id: string;
-  questionId: string;
-  userAnswer?: string;
-  isCorrect?: boolean;
-  timeSpentMs?: number;
-  rating?: 1 | 2 | 3 | 4;  // FSRS rating
-  // FSRS state
+  question: string;
+  user_answer?: string;
+  is_correct?: boolean;
+  time_spent_ms?: number;
+  rating?: 1 | 2 | 3 | 4;
   stability: number;
   difficulty: number;
-  dueAt?: string;
+  due_at?: string;
   state: 0 | 1 | 2 | 3;
   reps: number;
   lapses: number;
-  lastReviewAt?: string;
-  attemptedAt: string;
-}
-
-interface QuestionWithReviewState extends Question {
-  reviewState?: {
-    stability: number;
-    difficulty: number;
-    dueAt?: string;
-    state: number;
-    reps: number;
-    lapses: number;
-  };
+  created: string;
 }
 
 interface SessionMilestone {
   id: string;
-  sessionId: string;
-  milestonePercent: 25 | 50 | 75 | 100;
-  reachedAt: string;
-  quizPrompted: boolean;
-  quizCompleted: boolean;
+  session: string;
+  milestone_percent: 25 | 50 | 75 | 100;
+  quiz_prompted: boolean;
+  quiz_completed: boolean;
+  created: string;
 }
 
-// API response types
-interface CurrentSessionResponse {
-  session: Session;
-  document: Document;
-  milestones: SessionMilestone[];
-  pendingQuizMilestone?: number;  // Next milestone that needs a quiz
+// Expanded types for API responses
+interface SessionWithDocument extends Session {
+  expand?: {
+    document: Document;
+  };
 }
 
-interface QuizResponse {
-  questions: QuestionWithReviewState[];
-  newQuestions: number;      // Questions never attempted
-  reviewQuestions: number;   // Questions due for review
-}
-
-interface AnswerRequest {
-  questionId: string;
-  userAnswer: string;
-  isCorrect: boolean;
-  rating: 1 | 2 | 3 | 4;
-  timeSpentMs?: number;
-}
-
-interface StatsResponse {
-  totalDocuments: number;
-  totalReadingSessions: number;
-  totalQuestionsGenerated: number;
-  totalQuestionsAnswered: number;
-  correctAnswerRate: number;
-  questionsReviewedToday: number;
-  questionsDueForReview: number;
+interface QuestionWithAttempts extends Question {
+  expand?: {
+    question_attempts_via_question?: QuestionAttempt[];
+  };
 }
 ```
 
@@ -551,287 +708,150 @@ interface StatsResponse {
 
 ## 6. API Specification
 
+PocketBase provides a complete REST API out of the box. Below documents the endpoints used by FastReader and the MCP server.
+
 ### 6.1 Base URL
 
 ```
-http://localhost:8745/api
+http://127.0.0.1:8090/api
 ```
 
-### 6.2 Endpoints
+### 6.2 Authentication
 
-#### Documents
+For single-user local deployment, authentication is optional. If needed:
+
+```bash
+# Create admin user
+./pocketbase superuser create admin@localhost password123
+```
+
+API calls can then include the auth token:
+```
+Authorization: Bearer <token>
+```
+
+### 6.3 Standard CRUD Endpoints
+
+PocketBase provides these endpoints for each collection:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/documents` | List all documents |
-| `POST` | `/documents` | Create new document |
-| `GET` | `/documents/:id` | Get document by ID |
-| `DELETE` | `/documents/:id` | Delete document and all related data |
-| `POST` | `/documents/import/file` | Import document from file upload |
-| `POST` | `/documents/import/url` | Import document from URL |
+| `GET` | `/collections/{name}/records` | List records with filtering, sorting, pagination |
+| `POST` | `/collections/{name}/records` | Create new record |
+| `GET` | `/collections/{name}/records/{id}` | Get single record |
+| `PATCH` | `/collections/{name}/records/{id}` | Update record |
+| `DELETE` | `/collections/{name}/records/{id}` | Delete record |
 
-#### Sessions
+### 6.4 Query Parameters
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/sessions` | List all sessions |
-| `POST` | `/sessions` | Create new reading session |
-| `GET` | `/sessions/current` | Get current active session |
-| `GET` | `/sessions/:id` | Get session by ID |
-| `PATCH` | `/sessions/:id` | Update session progress |
-| `POST` | `/sessions/:id/complete` | Mark session as completed |
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `filter` | Filter expression | `filter=is_active=true` |
+| `sort` | Sort fields (- for desc) | `sort=-created,title` |
+| `page` | Page number | `page=1` |
+| `perPage` | Items per page | `perPage=30` |
+| `expand` | Expand relations | `expand=document,session` |
+| `fields` | Select specific fields | `fields=id,title,created` |
 
-#### Questions
+### 6.5 Common API Patterns
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/sessions/:id/quiz` | Get quiz questions for session |
-| `GET` | `/documents/:id/questions` | Get all questions for document |
-| `POST` | `/questions` | Save generated questions |
-| `POST` | `/questions/:id/answer` | Record answer attempt |
-| `GET` | `/questions/due` | Get questions due for spaced repetition |
+#### Get Current Active Session
 
-#### Stats
+```http
+GET /api/collections/sessions/records?filter=is_active=true&sort=-updated&perPage=1&expand=document
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/stats` | Get overall statistics |
-| `GET` | `/stats/document/:id` | Get stats for specific document |
+#### Get Questions for Document
 
-#### Health
+```http
+GET /api/collections/questions/records?filter=document="{docId}"&sort=-created
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
+#### Get Due Questions for Review
 
-### 6.3 Detailed Endpoint Specifications
+```http
+GET /api/collections/question_attempts/records?filter=due_at<="{now}"&sort=due_at&expand=question
+```
 
-#### `POST /api/documents`
+**Note:** This requires a view or custom query to get the latest attempt per question. Alternative approach: query questions and filter in application code.
 
-Create a new document from pasted text.
+#### Create Document
 
-**Request:**
-```json
+```http
+POST /api/collections/documents/records
+Content-Type: application/json
+
 {
-  "title": "Chapter 1: Introduction",
-  "content": "The full text content...",
-  "sourceType": "paste"
+  "title": "Chapter 1",
+  "content": "The full text...",
+  "source_type": "paste",
+  "word_count": 1542
 }
 ```
 
-**Response:**
-```json
+#### Save Generated Questions
+
+```http
+POST /api/collections/questions/records
+Content-Type: application/json
+
 {
-  "id": "doc_abc123",
-  "title": "Chapter 1: Introduction",
-  "content": "The full text content...",
-  "sourceType": "paste",
-  "wordCount": 1542,
-  "createdAt": "2026-01-18T10:30:00Z",
-  "updatedAt": "2026-01-18T10:30:00Z"
+  "document": "DOCUMENT_ID",
+  "session": "SESSION_ID",
+  "question_text": "What is the main argument?",
+  "question_type": "multiple_choice",
+  "comprehension_type": "inference",
+  "difficulty": "medium",
+  "options": {"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+  "correct_answer": "B",
+  "rationale": "The author explicitly states..."
 }
 ```
 
-#### `POST /api/documents/import/url`
+#### Record Answer Attempt
 
-Import document content from a URL.
+```http
+POST /api/collections/question_attempts/records
+Content-Type: application/json
 
-**Request:**
-```json
 {
-  "url": "https://example.com/article",
-  "title": "Optional custom title"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "doc_def456",
-  "title": "Article Title (extracted or custom)",
-  "content": "Extracted text content...",
-  "sourceType": "url",
-  "sourcePath": "https://example.com/article",
-  "wordCount": 2103,
-  "createdAt": "2026-01-18T10:35:00Z",
-  "updatedAt": "2026-01-18T10:35:00Z"
-}
-```
-
-#### `GET /api/sessions/current`
-
-Get the current active reading session with full context.
-
-**Response:**
-```json
-{
-  "session": {
-    "id": "sess_xyz789",
-    "documentId": "doc_abc123",
-    "currentWordIndex": 450,
-    "totalWords": 1542,
-    "progressPercent": 29.2,
-    "wpmSetting": 350,
-    "chunkSize": 1,
-    "isActive": true,
-    "startedAt": "2026-01-18T10:30:00Z",
-    "lastActiveAt": "2026-01-18T10:45:00Z"
-  },
-  "document": {
-    "id": "doc_abc123",
-    "title": "Chapter 1: Introduction",
-    "content": "The full text content...",
-    "wordCount": 1542
-  },
-  "milestones": [
-    {
-      "milestonePercent": 25,
-      "reachedAt": "2026-01-18T10:40:00Z",
-      "quizPrompted": true,
-      "quizCompleted": true
-    }
-  ],
-  "pendingQuizMilestone": null
-}
-```
-
-#### `POST /api/questions`
-
-Save generated questions (called by Claude Code via MCP).
-
-**Request:**
-```json
-{
-  "documentId": "doc_abc123",
-  "sessionId": "sess_xyz789",
-  "questions": [
-    {
-      "questionText": "What is the main argument presented in the introduction?",
-      "questionType": "multiple_choice",
-      "comprehensionType": "inference",
-      "difficulty": "medium",
-      "options": {
-        "A": "The author argues for increased regulation",
-        "B": "The author presents a historical overview",
-        "C": "The author challenges conventional wisdom",
-        "D": "The author provides statistical analysis"
-      },
-      "correctAnswer": "C",
-      "distractorExplanations": {
-        "A": "Incorrect. The passage does not discuss regulation.",
-        "B": "Incorrect. While history is mentioned, it's not the main focus.",
-        "C": "Correct. The author explicitly states their goal is to challenge the accepted narrative.",
-        "D": "Incorrect. No statistical analysis is presented in this section."
-      },
-      "rationale": "The author explicitly states their goal is to challenge the accepted narrative, requiring readers to infer the main argument from contextual clues.",
-      "passageEvidence": "The author writes: 'My aim is to overturn the comfortable assumptions...'",
-      "passageLocation": "Paragraph 2",
-      "chunkStartIndex": 0,
-      "chunkEndIndex": 450
-    },
-    {
-      "questionText": "In your own words, explain the significance of the opening example.",
-      "questionType": "short_answer",
-      "comprehensionType": "synthesis",
-      "difficulty": "hard",
-      "idealAnswer": "The opening example of the factory closure illustrates how economic decisions affect real communities. It highlights the human impact, contrasts with corporate messaging, and foreshadows the book's themes.",
-      "acceptableVariations": [
-        "The factory example shows the disconnect between corporate decisions and community consequences.",
-        "It demonstrates how abstract economic policies have concrete human effects."
-      ],
-      "requiredConcepts": ["human impact", "corporate decisions", "community effects"],
-      "scoringRubric": {
-        "fullCredit": "Mentions human impact AND connects to broader themes",
-        "partialCredit": "Mentions human impact OR thematic connection, but not both",
-        "noCredit": "Only summarizes the example without analysis"
-      },
-      "rationale": "This question tests understanding of authorial intent and narrative structure by requiring synthesis of the example's purpose within the larger argument.",
-      "passageEvidence": "The passage opens with: 'When the Millbrook plant closed its doors...'",
-      "passageLocation": "Paragraph 1",
-      "chunkStartIndex": 50,
-      "chunkEndIndex": 200
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "saved": 2,
-  "questions": [
-    { "id": "q_001", "questionText": "What is the main argument..." },
-    { "id": "q_002", "questionText": "In your own words..." }
-  ]
-}
-```
-
-#### `POST /api/questions/:id/answer`
-
-Record user's answer and update spaced repetition state.
-
-**Request:**
-```json
-{
-  "userAnswer": "C",
-  "isCorrect": true,
+  "question": "QUESTION_ID",
+  "user_answer": "B",
+  "is_correct": true,
   "rating": 3,
-  "timeSpentMs": 15000
+  "time_spent_ms": 15000
 }
 ```
 
-**Response:**
-```json
-{
-  "attemptId": "att_123",
-  "questionId": "q_001",
-  "isCorrect": true,
-  "nextReview": {
-    "dueAt": "2026-01-19T10:45:00Z",
-    "stability": 1.2,
-    "state": 2
+The FSRS hook will automatically populate `stability`, `difficulty`, `due_at`, `state`, `reps`, and `lapses`.
+
+### 6.6 Real-Time Subscriptions (SSE)
+
+PocketBase provides Server-Sent Events for real-time updates.
+
+**Endpoint:** `/api/realtime`
+
+**JavaScript Client:**
+```typescript
+import PocketBase from 'pocketbase';
+
+const pb = new PocketBase('http://127.0.0.1:8090');
+
+// Subscribe to all question changes
+pb.collection('questions').subscribe('*', (e) => {
+  console.log(e.action); // 'create', 'update', or 'delete'
+  console.log(e.record); // The affected record
+});
+
+// Subscribe to specific document's questions
+pb.collection('questions').subscribe('*', (e) => {
+  if (e.record.document === currentDocId) {
+    handleNewQuestion(e.record);
   }
-}
-```
+});
 
-#### `GET /api/questions/due`
-
-Get questions due for spaced repetition review.
-
-**Query Parameters:**
-- `limit` (optional): Maximum questions to return (default: 20)
-- `documentId` (optional): Filter to specific document
-
-**Response:**
-```json
-{
-  "questions": [
-    {
-      "id": "q_001",
-      "documentId": "doc_abc123",
-      "questionText": "What is the main argument...",
-      "questionType": "multiple_choice",
-      "comprehensionType": "inference",
-      "difficulty": "medium",
-      "options": {
-        "A": "The author argues for increased regulation",
-        "B": "The author challenges conventional wisdom",
-        "C": "The author provides statistical analysis",
-        "D": "The author presents a historical overview"
-      },
-      "correctAnswer": "B",
-      "rationale": "The author explicitly states their goal is to challenge accepted narratives.",
-      "reviewState": {
-        "dueAt": "2026-01-18T10:00:00Z",
-        "stability": 0.8,
-        "state": 2,
-        "reps": 2,
-        "lapses": 0
-      }
-    }
-  ],
-  "totalDue": 5
-}
+// Unsubscribe
+pb.collection('questions').unsubscribe('*');
 ```
 
 ---
@@ -847,6 +867,9 @@ claude mcp add fastreader -- npx @anthropic/fastreader-mcp
 # Or with local installation
 npm install -g @anthropic/fastreader-mcp
 claude mcp add fastreader -- fastreader-mcp
+
+# For other AI CLIs (example for hypothetical opencode)
+opencode mcp add fastreader -- npx @anthropic/fastreader-mcp
 ```
 
 ### 7.2 Tool Implementations
@@ -943,32 +966,23 @@ Questions will be available in FastReader's quiz interface and for spaced repeti
               questionType: { type: "string", enum: ["multiple_choice", "short_answer", "fill_in_blank"] },
               comprehensionType: { type: "string", enum: ["factual_recall", "inference", "synthesis"] },
               difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
-              options: {
-                type: "object",
-                properties: {
-                  A: { type: "string" },
-                  B: { type: "string" },
-                  C: { type: "string" },
-                  D: { type: "string" }
-                },
-                description: "For multiple_choice format only"
-              },
+              options: { type: "object" },
               correctAnswer: { type: "string" },
-              distractorExplanations: { type: "object", description: "For multiple_choice format" },
-              idealAnswer: { type: "string", description: "For short_answer format" },
-              acceptableVariations: { type: "array", items: { type: "string" }, description: "For short_answer format" },
-              requiredConcepts: { type: "array", items: { type: "string" }, description: "For short_answer format" },
-              scoringRubric: { type: "object", description: "For short_answer format" },
-              sentenceWithBlank: { type: "string", description: "For fill_in_blank format" },
-              correctAnswers: { type: "array", items: { type: "string" }, description: "For fill_in_blank format" },
-              contextHint: { type: "string", description: "For fill_in_blank format" },
+              distractorExplanations: { type: "object" },
+              idealAnswer: { type: "string" },
+              acceptableVariations: { type: "array", items: { type: "string" } },
+              requiredConcepts: { type: "array", items: { type: "string" } },
+              scoringRubric: { type: "object" },
+              sentenceWithBlank: { type: "string" },
+              correctAnswers: { type: "array", items: { type: "string" } },
+              contextHint: { type: "string" },
               rationale: { type: "string" },
               passageEvidence: { type: "string" },
               passageLocation: { type: "string" },
               chunkStartIndex: { type: "number" },
               chunkEndIndex: { type: "number" }
             },
-            required: ["questionText", "questionType", "comprehensionType", "difficulty", "correctAnswer", "rationale"]
+            required: ["questionText", "questionType", "comprehensionType", "correctAnswer", "rationale"]
           }
         }
       },
@@ -978,7 +992,7 @@ Questions will be available in FastReader's quiz interface and for spaced repeti
   {
     name: "fastreader_record_answer",
     description: `Record the user's answer to a question.
-Use this when the user answers a question in the Claude Code conversation.
+Use this when the user answers a question in the AI CLI conversation.
 The rating parameter uses FSRS scale: 1=Again (forgot), 2=Hard, 3=Good, 4=Easy.
 This updates the spaced repetition schedule for the question.`,
     inputSchema: {
@@ -1047,7 +1061,7 @@ Returns total documents, questions answered, accuracy rate, and review progress.
 ];
 ```
 
-### 7.3 Example MCP Server Implementation
+### 7.3 MCP Server Implementation
 
 ```typescript
 // src/index.ts
@@ -1055,22 +1069,21 @@ Returns total documents, questions answered, accuracy rate, and review progress.
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import PocketBase from 'pocketbase';
 import { tools } from "./tools.js";
 
-const BACKEND_URL = process.env.FASTREADER_API_URL || "http://localhost:8745/api";
+const POCKETBASE_URL = process.env.FASTREADER_API_URL || "http://127.0.0.1:8090";
 
-async function callBackend(method: string, path: string, body?: unknown): Promise<unknown> {
-  const response = await fetch(`${BACKEND_URL}${path}`, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+const pb = new PocketBase(POCKETBASE_URL);
 
-  if (!response.ok) {
-    throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+// Helper to convert camelCase to snake_case for PocketBase
+function toSnakeCase(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    result[snakeKey] = value;
   }
-
-  return response.json();
+  return result;
 }
 
 const server = new Server(
@@ -1087,55 +1100,133 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     let result: unknown;
 
     switch (name) {
-      case "fastreader_get_current_session":
-        result = await callBackend("GET", "/sessions/current");
+      case "fastreader_get_current_session": {
+        const sessions = await pb.collection('sessions').getList(1, 1, {
+          filter: 'is_active = true',
+          sort: '-updated',
+          expand: 'document'
+        });
+        if (sessions.items.length === 0) {
+          result = { error: "No active session found" };
+        } else {
+          const session = sessions.items[0];
+          const milestones = await pb.collection('session_milestones').getList(1, 100, {
+            filter: `session = "${session.id}"`
+          });
+          result = {
+            session,
+            document: session.expand?.document,
+            milestones: milestones.items,
+            pendingQuizMilestone: milestones.items.find(m => !m.quiz_completed)?.milestone_percent
+          };
+        }
         break;
+      }
 
-      case "fastreader_get_document":
-        result = await callBackend("GET", `/documents/${args.documentId}`);
+      case "fastreader_get_document": {
+        result = await pb.collection('documents').getOne(args.documentId);
         break;
+      }
 
-      case "fastreader_list_documents":
-        const params = new URLSearchParams();
-        if (args.limit) params.set("limit", String(args.limit));
-        if (args.offset) params.set("offset", String(args.offset));
-        result = await callBackend("GET", `/documents?${params}`);
-        break;
-
-      case "fastreader_get_question_history":
-        result = await callBackend("GET", `/documents/${args.documentId}/questions`);
-        break;
-
-      case "fastreader_save_questions":
-        result = await callBackend("POST", "/questions", {
-          documentId: args.documentId,
-          sessionId: args.sessionId,
-          questions: args.questions,
+      case "fastreader_list_documents": {
+        const page = args.offset ? Math.floor(args.offset / (args.limit || 50)) + 1 : 1;
+        result = await pb.collection('documents').getList(page, args.limit || 50, {
+          sort: '-created'
         });
         break;
+      }
 
-      case "fastreader_record_answer":
-        result = await callBackend("POST", `/questions/${args.questionId}/answer`, {
-          userAnswer: args.userAnswer,
-          isCorrect: args.isCorrect,
+      case "fastreader_get_question_history": {
+        result = await pb.collection('questions').getList(1, 500, {
+          filter: `document = "${args.documentId}"`,
+          sort: '-created'
+        });
+        break;
+      }
+
+      case "fastreader_save_questions": {
+        const saved = [];
+        for (const q of args.questions) {
+          const record = await pb.collection('questions').create({
+            document: args.documentId,
+            session: args.sessionId,
+            ...toSnakeCase(q)
+          });
+          saved.push({ id: record.id, questionText: q.questionText });
+        }
+        result = { saved: saved.length, questions: saved };
+        break;
+      }
+
+      case "fastreader_record_answer": {
+        const attempt = await pb.collection('question_attempts').create({
+          question: args.questionId,
+          user_answer: args.userAnswer,
+          is_correct: args.isCorrect,
           rating: args.rating,
-          timeSpentMs: args.timeSpentMs,
+          time_spent_ms: args.timeSpentMs
         });
+        // Fetch updated record (FSRS hook may have updated it)
+        const updated = await pb.collection('question_attempts').getOne(attempt.id);
+        result = {
+          attemptId: updated.id,
+          questionId: args.questionId,
+          isCorrect: updated.is_correct,
+          nextReview: {
+            dueAt: updated.due_at,
+            stability: updated.stability,
+            state: updated.state
+          }
+        };
         break;
+      }
 
-      case "fastreader_get_due_questions":
-        const dueParams = new URLSearchParams();
-        if (args.limit) dueParams.set("limit", String(args.limit));
-        if (args.documentId) dueParams.set("documentId", args.documentId);
-        result = await callBackend("GET", `/questions/due?${dueParams}`);
+      case "fastreader_get_due_questions": {
+        const now = new Date().toISOString();
+        let filter = `due_at <= "${now}"`;
+        if (args.documentId) {
+          filter += ` && question.document = "${args.documentId}"`;
+        }
+        const attempts = await pb.collection('question_attempts').getList(1, args.limit || 20, {
+          filter,
+          sort: 'due_at',
+          expand: 'question'
+        });
+        result = {
+          questions: attempts.items.map(a => ({
+            ...a.expand?.question,
+            reviewState: {
+              dueAt: a.due_at,
+              stability: a.stability,
+              difficulty: a.difficulty,
+              state: a.state,
+              reps: a.reps,
+              lapses: a.lapses
+            }
+          })),
+          totalDue: attempts.totalItems
+        };
         break;
+      }
 
-      case "fastreader_get_session_stats":
-        const statsPath = args.documentId
-          ? `/stats/document/${args.documentId}`
-          : "/stats";
-        result = await callBackend("GET", statsPath);
+      case "fastreader_get_session_stats": {
+        const docs = await pb.collection('documents').getList(1, 1);
+        const questions = await pb.collection('questions').getList(1, 1);
+        const attempts = await pb.collection('question_attempts').getList(1, 1, {
+          filter: 'is_correct = true'
+        });
+        const totalAttempts = await pb.collection('question_attempts').getList(1, 1);
+
+        result = {
+          totalDocuments: docs.totalItems,
+          totalQuestionsGenerated: questions.totalItems,
+          totalQuestionsAnswered: totalAttempts.totalItems,
+          correctAnswerRate: totalAttempts.totalItems > 0
+            ? attempts.totalItems / totalAttempts.totalItems
+            : 0
+        };
         break;
+      }
 
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -1149,10 +1240,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    // Check for common errors
+    if (message.includes('ECONNREFUSED')) {
+      return {
+        content: [{
+          type: "text",
+          text: "Error: PocketBase is not running. Please start it with: ./pocketbase serve"
+        }],
+        isError: true
+      };
+    }
+
     return {
       content: [{
         type: "text",
-        text: `Error: ${error instanceof Error ? error.message : String(error)}`
+        text: `Error: ${message}`
       }],
       isError: true
     };
@@ -1175,69 +1279,80 @@ main().catch(console.error);
 ### 8.1 Initial Setup
 
 ```
-1. User downloads fastreader-server binary from GitHub releases
-   └── Available for: linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64
+1. User downloads binaries from GitHub releases
+   ├── pocketbase (or downloads separately from pocketbase.io)
+   └── fastreader-extract
 
-2. User runs the server
-   $ fastreader-server
-   > FastReader server running on http://localhost:8745
-   > Database: ~/.fastreader/fastreader.db
+2. User starts PocketBase
+   $ ./pocketbase serve
+   > PocketBase server running on http://127.0.0.1:8090
+   > Admin UI: http://127.0.0.1:8090/_/
 
-3. User adds MCP server to Claude Code
+3. User creates collections via Admin UI (first time only)
+   └── Or imports provided schema migration
+
+4. User adds MCP server to their AI CLI
    $ claude mcp add fastreader -- npx @anthropic/fastreader-mcp
    > Added MCP server: fastreader
 
-4. User opens FastReader in browser
-   > FastReader detects backend at localhost:8745
-   > Shows "Connected to local server" indicator
+5. User opens FastReader in browser
+   > FastReader detects PocketBase at localhost:8090
+   > Shows "Connected" indicator
+   > Subscribes to real-time updates via SSE
 ```
 
-### 8.2 Reading with Milestone Quizzes
+### 8.2 Reading with In-App Question Generation
+
+This is the primary user flow enabled by real-time sync:
 
 ```
 1. User pastes/imports text into FastReader
-   └── Text sent to backend, document created
+   └── Document created in PocketBase
    └── New session started
 
 2. User begins RSVP reading at chosen WPM
 
 3. At 25% progress:
-   └── Backend records milestone
-   └── FastReader shows subtle "Quiz available" indicator
-   └── User can continue reading or take quiz
+   └── pb_hooks/sessions.pb.js creates milestone record
+   └── FastReader receives SSE event
+   └── Shows "Quiz available" badge
 
-4. User clicks "Take Quiz":
-   └── FastReader prompts: "Generate questions with Claude?"
-   └── User confirms
-   └── Claude Code opens (or user switches to terminal)
-   └── User: "Generate comprehension questions for my FastReader session"
+4. User clicks "Generate Quiz" button in FastReader:
+   └── FastReader shows "Generating questions..." overlay
+   └── FastReader spawns AI CLI in background:
+       spawn('claude', ['--print', 'Generate 5 comprehension questions...'])
 
-5. Claude Code:
-   └── Calls fastreader_get_current_session
+5. AI CLI executes:
+   └── Calls fastreader_get_current_session via MCP
    └── Gets document text and progress
-   └── Calls fastreader_get_question_history
-   └── Generates 3-5 questions avoiding duplicates
-   └── Calls fastreader_save_questions
-   └── Confirms: "I've generated 4 questions. You can answer them here or in FastReader."
+   └── Calls fastreader_get_question_history via MCP
+   └── Generates 5 questions avoiding duplicates
+   └── Calls fastreader_save_questions via MCP
+   └── Questions saved to PocketBase
 
-6. User returns to FastReader:
-   └── Quiz modal shows new questions
-   └── User answers MCQ questions
-   └── For open-ended: types answer, self-assesses or asks Claude to evaluate
-   └── Results recorded, FSRS schedule updated
+6. PocketBase emits SSE events for new questions
+   └── FastReader receives events instantly
+   └── "Generating..." overlay closes
+   └── Quiz modal appears with questions
 
-7. User continues reading to next milestone...
+7. User answers questions in FastReader UI:
+   └── Selects MCQ answers or types responses
+   └── Submits answer → creates question_attempt
+   └── FSRS hook calculates next review
+   └── Shows feedback with explanation
+
+8. User continues reading to next milestone...
 ```
 
-### 8.3 On-Demand Question Generation
+### 8.3 On-Demand Question Generation (CLI)
 
 ```
 1. User is reading in FastReader
 
-2. At any point, user opens Claude Code:
+2. User opens terminal and starts AI CLI:
    $ claude "I want to test my understanding of what I just read"
 
-3. Claude Code:
+3. AI CLI:
    └── Calls fastreader_get_current_session
    └── Sees user is at 42% through "Chapter 3: The Industrial Revolution"
    └── Calls fastreader_get_question_history (finds 8 existing questions)
@@ -1245,23 +1360,27 @@ main().catch(console.error);
    └── Calls fastreader_save_questions
    └── Presents questions in conversation
 
-4. User answers in Claude Code conversation:
+4. FastReader (in background):
+   └── Receives SSE events for new questions
+   └── Updates quiz badge silently
+
+5. User answers in AI CLI conversation:
    User: "I think the answer is B"
    Claude: "That's correct! [explanation]... How would you rate that question?"
    User: "It was medium difficulty"
    └── Claude calls fastreader_record_answer with rating=3 (Good)
 
-5. After quiz:
-   Claude: "You got 4/5 correct. Your next review for these questions is scheduled based on your performance."
+6. After quiz:
+   Claude: "You got 4/5 correct. Your next review for these questions is scheduled."
 ```
 
 ### 8.4 Spaced Repetition Review
 
 ```
-1. User opens Claude Code for daily review:
+1. User opens AI CLI for daily review:
    $ claude "What questions do I have due for review?"
 
-2. Claude Code:
+2. AI CLI:
    └── Calls fastreader_get_due_questions
    └── Returns 7 questions due across 3 documents
 
@@ -1285,32 +1404,24 @@ main().catch(console.error);
    - Next reviews: 2 tomorrow, 3 in 3 days, 2 in a week"
 ```
 
-### 8.5 Open-Ended Question Evaluation
+### 8.5 Document Import from URL/PDF
 
 ```
-1. Claude presents open-ended question:
-   "In your own words, explain why the author argues that..."
+1. User has a PDF or wants to import web article
 
-2. User types response:
-   "I think the author is saying that economic growth doesn't always..."
+2. Option A - CLI extraction:
+   $ fastreader-extract url "https://example.com/article" > article.json
+   $ curl -X POST http://localhost:8090/api/collections/documents/records \
+       -H "Content-Type: application/json" \
+       -d @article.json
 
-3. Claude can:
-   a) Self-assessment mode:
-      "Here's the model answer: [shows correct answer]
-       How well do you think you answered?
-       1 - Completely wrong
-       2 - Partially correct but missing key points
-       3 - Good answer with minor gaps
-       4 - Excellent, covered all key points"
+3. Option B - FastReader UI (calls extractor):
+   └── User clicks "Import" → "From URL"
+   └── Enters URL
+   └── FastReader calls fastreader-extract internally
+   └── Document created and session started
 
-   b) Claude evaluation mode:
-      "Let me evaluate your answer...
-       Your response correctly identifies [X] and [Y].
-       However, you missed the key point about [Z].
-       I'd rate this as a 'Good' answer (3/4).
-       Would you like me to record this rating?"
-
-4. User confirms, answer recorded with chosen rating
+4. User begins reading the imported content
 ```
 
 ---
@@ -1321,22 +1432,42 @@ main().catch(console.error);
 
 #### 9.1.1 Backend Status Indicator
 
-Small indicator in the header showing connection status:
-
 ```
 ┌─────────────────────────────────────────────────────┐
 │  FastReader                    [●] Connected  [⚙]  │
 └─────────────────────────────────────────────────────┘
 
 States:
-- [●] Connected (green) - Backend running
-- [○] Disconnected (gray) - Backend not running
+- [●] Connected (green) - PocketBase running, SSE active
+- [○] Disconnected (gray) - PocketBase not running
 - [!] Error (red) - Connection error
+- [↻] Reconnecting (yellow) - SSE reconnecting
 ```
 
-#### 9.1.2 Quiz Milestone Prompt
+#### 9.1.2 Quiz Generation Button
 
-Subtle notification when milestone is reached:
+```
+┌─────────────────────────────────────────────────────┐
+│  Progress: 47%  ████████░░░░░░░░░  [Generate Quiz]  │
+└─────────────────────────────────────────────────────┘
+
+When clicked:
+┌─────────────────────────────────────────────────────┐
+│  Progress: 47%  ████████░░░░░░░░░  [Generating...]  │
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │  🤖 Generating questions with Claude...     │   │
+│  │                                              │   │
+│  │  This may take 30-60 seconds.               │   │
+│  │                                              │   │
+│  │  [Cancel]                                    │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
+
+#### 9.1.3 Quiz Milestone Prompt
+
+Appears when milestone is reached (via SSE event):
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1354,9 +1485,7 @@ Subtle notification when milestone is reached:
 └─────────────────────────────────────────────────────┘
 ```
 
-#### 9.1.3 Quiz Modal (Multiple Choice)
-
-Full-screen modal for answering questions:
+#### 9.1.4 Quiz Modal (Multiple Choice)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1381,56 +1510,7 @@ Full-screen modal for answering questions:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 9.1.4 Short Answer (Open-Ended) Question UI
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Question 4 of 5 (Short Answer)                      [Synthesis]│
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  In your own words, explain the significance of the            │
-│  opening example used by the author.                           │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Your answer:                                            │   │
-│  │                                                          │   │
-│  │  The opening example illustrates how economic            │   │
-│  │  decisions at the corporate level have direct            │   │
-│  │  consequences for working-class communities...           │   │
-│  │  _                                                       │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  [Submit & Self-Assess]  [Submit & Ask Claude to Evaluate]     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 9.1.5 Fill-in-the-Blank Question UI
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Question 3 of 5 (Fill-in-the-Blank)            [Factual Recall]│
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Complete the sentence based on the passage:                    │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                                                          │   │
-│  │  The author argues that _____________ was the primary    │   │
-│  │  cause of the economic downturn in the 1970s.           │   │
-│  │                                                          │   │
-│  │  Your answer: [________________]                         │   │
-│  │                                                          │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  Hint: See paragraph 3                                          │
-│                                                                 │
-│  [← Previous]                              [Submit Answer →]   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 9.1.6 Answer Feedback
+#### 9.1.5 Answer Feedback
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1450,57 +1530,185 @@ Full-screen modal for answering questions:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### 9.1.7 Review Dashboard (Optional)
-
-Accessible from settings or menu:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Review Dashboard                                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Due Today: 12 questions                                        │
-│  ───────────────────────────────                               │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Chapter 1: Introduction          5 due    [Review]      │   │
-│  │ The Art of War                   4 due    [Review]      │   │
-│  │ Economics 101                    3 due    [Review]      │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  Stats:                                                         │
-│  • Total questions: 47                                          │
-│  • Correct rate: 78%                                            │
-│  • Streak: 5 days                                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
 ### 9.2 State Management
 
-New React context for comprehension features:
-
 ```typescript
+// src/contexts/ComprehensionContext.tsx
+
+import PocketBase from 'pocketbase';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+
 interface ComprehensionState {
   // Connection
   backendConnected: boolean;
-  backendUrl: string;
+  sseConnected: boolean;
 
-  // Current quiz
+  // Current session
+  currentSession: Session | null;
+  currentDocument: Document | null;
+
+  // Quiz state
+  pendingMilestone: number | null;
   currentQuiz: {
-    sessionId: string;
     questions: Question[];
     currentIndex: number;
-    answers: Map<string, AnswerAttempt>;
+    answers: Map<string, QuestionAttempt>;
   } | null;
-
-  // Milestones
-  pendingMilestone: number | null;  // 25, 50, 75, or 100
+  isGenerating: boolean;
 
   // Actions
-  generateQuiz: () => Promise<void>;
-  submitAnswer: (questionId: string, answer: AnswerRequest) => Promise<void>;
+  generateQuiz: (count?: number) => Promise<void>;
+  submitAnswer: (questionId: string, answer: string, rating: number) => Promise<void>;
   dismissMilestone: () => void;
+}
+
+const pb = new PocketBase('http://127.0.0.1:8090');
+
+export function ComprehensionProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<ComprehensionState>({...});
+
+  useEffect(() => {
+    // Subscribe to questions collection
+    pb.collection('questions').subscribe('*', (e) => {
+      if (e.action === 'create' && e.record.session === state.currentSession?.id) {
+        // New question for current session - add to quiz
+        setState(prev => ({
+          ...prev,
+          currentQuiz: prev.currentQuiz ? {
+            ...prev.currentQuiz,
+            questions: [...prev.currentQuiz.questions, e.record]
+          } : {
+            questions: [e.record],
+            currentIndex: 0,
+            answers: new Map()
+          },
+          isGenerating: false
+        }));
+      }
+    });
+
+    // Subscribe to milestones
+    pb.collection('session_milestones').subscribe('*', (e) => {
+      if (e.action === 'create' && e.record.session === state.currentSession?.id) {
+        setState(prev => ({
+          ...prev,
+          pendingMilestone: e.record.milestone_percent
+        }));
+      }
+    });
+
+    return () => {
+      pb.collection('questions').unsubscribe('*');
+      pb.collection('session_milestones').unsubscribe('*');
+    };
+  }, [state.currentSession?.id]);
+
+  const generateQuiz = async (count = 5) => {
+    setState(prev => ({ ...prev, isGenerating: true }));
+
+    // Spawn AI CLI in background
+    const config = await getConfig(); // Get from settings or localStorage
+    const proc = spawn(config.ai_assistant.command, [
+      ...config.ai_assistant.args,
+      `Generate ${count} comprehension questions for my current FastReader session. ` +
+      `Focus on the content I've read so far (${state.currentSession?.progress_percent}% progress). ` +
+      `Save the questions using the fastreader_save_questions tool.`
+    ]);
+
+    // Set timeout
+    const timeout = setTimeout(() => {
+      proc.kill();
+      setState(prev => ({ ...prev, isGenerating: false }));
+    }, config.ai_assistant.timeout * 1000);
+
+    proc.on('exit', () => {
+      clearTimeout(timeout);
+      // Questions will arrive via SSE, isGenerating cleared when first question arrives
+    });
+  };
+
+  // ... rest of implementation
+}
+```
+
+### 9.3 CLI Spawning Service
+
+```typescript
+// src/services/aiCli.ts
+
+import { spawn, ChildProcess } from 'child_process';
+
+interface AICliConfig {
+  command: string;
+  args: string[];
+  timeout: number;
+}
+
+const DEFAULT_CONFIG: AICliConfig = {
+  command: 'claude',
+  args: ['--print'],
+  timeout: 300
+};
+
+export class AICliService {
+  private config: AICliConfig;
+  private activeProcess: ChildProcess | null = null;
+
+  constructor(config: Partial<AICliConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  async generateQuestions(sessionId: string, count: number): Promise<void> {
+    if (this.activeProcess) {
+      throw new Error('Question generation already in progress');
+    }
+
+    const prompt = `Generate ${count} comprehension questions for my current FastReader session. ` +
+      `Use the fastreader_get_current_session tool to get the document and progress, ` +
+      `use fastreader_get_question_history to avoid duplicates, ` +
+      `then save questions using fastreader_save_questions.`;
+
+    return new Promise((resolve, reject) => {
+      this.activeProcess = spawn(this.config.command, [
+        ...this.config.args,
+        prompt
+      ], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      const timeout = setTimeout(() => {
+        this.cancel();
+        reject(new Error('Question generation timed out'));
+      }, this.config.timeout * 1000);
+
+      this.activeProcess.on('exit', (code) => {
+        clearTimeout(timeout);
+        this.activeProcess = null;
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`AI CLI exited with code ${code}`));
+        }
+      });
+
+      this.activeProcess.on('error', (err) => {
+        clearTimeout(timeout);
+        this.activeProcess = null;
+        reject(err);
+      });
+    });
+  }
+
+  cancel(): void {
+    if (this.activeProcess) {
+      this.activeProcess.kill();
+      this.activeProcess = null;
+    }
+  }
+
+  isRunning(): boolean {
+    return this.activeProcess !== null;
+  }
 }
 ```
 
@@ -1508,307 +1716,30 @@ interface ComprehensionState {
 
 ## 10. Question Generation
 
-This section defines the prompt engineering architecture for generating high-quality reading comprehension questions. The approach is based on research-validated principles that emphasize composable templates, explicit cognitive level targeting, and structured output schemas.
+This section defines the prompt engineering architecture for generating high-quality reading comprehension questions. See the original specification for full details on composable templates and few-shot examples.
 
 ### 10.1 Core Principles
 
-Six research-validated principles govern all question generation prompts:
-
 | Principle | Description |
 |-----------|-------------|
-| **Explicit instruction primacy** | Lead with action verbs ("Generate," "Create," "Analyze"). Specify desired behavior positively rather than listing what not to do. |
-| **Few-shot examples are essential** | Include 3-5 diverse examples per question type. Research shows this improves question-skill alignment from ~66% to ~73%. |
-| **Chain-of-thought for cognitive alignment** | Prompt the model to reason before generating ("First, identify testable concepts. Then, formulate questions..."). Critical for inference and synthesis questions. |
-| **Structured output via prompt specification** | Embed the complete JSON schema in the prompt text with explicit field descriptions. |
-| **Moderate complexity beats maximal** | Adding skill definitions and 1-2 examples improves quality by ~15%, but excessive detail degrades performance. |
-| **Ground truth rationale as output** | Require explanations alongside answers for self-consistency reasoning and verification. |
+| **Explicit instruction primacy** | Lead with action verbs. Specify desired behavior positively. |
+| **Few-shot examples are essential** | Include 3-5 diverse examples per question type. |
+| **Chain-of-thought for cognitive alignment** | Prompt to reason before generating. |
+| **Structured output via prompt specification** | Embed complete JSON schema in prompt. |
+| **Moderate complexity beats maximal** | Skill definitions + 1-2 examples improves quality ~15%. |
+| **Ground truth rationale as output** | Require explanations alongside answers. |
 
-### 10.2 Composable Template Architecture
+### 10.2 Question Distribution
 
-Rather than maintaining separate templates for each combination, use a modular architecture with 5 composable modules:
+| Comprehension Type | Target % | Description |
+|--------------------|----------|-------------|
+| Factual Recall | ~40% | Explicit information retrieval |
+| Inference | ~40% | Drawing conclusions not explicitly stated |
+| Synthesis | ~20% | Integrating multiple parts of passage |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  MODULE 1: System Role + Task Definition                    │
-├─────────────────────────────────────────────────────────────┤
-│  MODULE 2: Comprehension Type Specification                 │
-│  (factual_recall | inference | synthesis)                   │
-├─────────────────────────────────────────────────────────────┤
-│  MODULE 3: Question Format Specification                    │
-│  (multiple_choice | short_answer | fill_in_blank)           │
-├─────────────────────────────────────────────────────────────┤
-│  MODULE 4: Output Schema + Examples                         │
-├─────────────────────────────────────────────────────────────┤
-│  MODULE 5: Passage + Generation Instructions                │
-└─────────────────────────────────────────────────────────────┘
-```
+### 10.3 Deduplication
 
-### 10.3 Module Definitions
-
-#### Module 1: System Role (Universal)
-
-```
-You are an expert educational assessment designer specializing in reading
-comprehension evaluation. Your task is to generate high-quality comprehension
-questions that accurately test reader understanding of provided passages.
-
-For every question, you must also generate:
-- The correct answer (ground truth)
-- A rationale explaining why this answer is correct
-- For multiple choice: explanations for why each distractor is incorrect
-
-Quality criteria:
-- Questions must be answerable solely from the passage content
-- Difficulty should match the specified cognitive level
-- Language should be clear and unambiguous
-- Distractors must be plausible but definitively wrong
-```
-
-#### Module 2: Comprehension Type Specifications
-
-**Factual Recall (Bloom's: Remember/Understand)**
-```
-COMPREHENSION TYPE: Factual Recall
-
-Generate questions that test explicit information retrieval from the passage.
-These questions have answers directly stated in the text—readers should be able
-to locate and identify the relevant information.
-
-Target cognitive skills:
-- Identifying explicitly stated facts, dates, names, definitions
-- Recognizing key details and sequences
-- Locating specific information in the text
-
-Question stems to use: "According to the passage...", "The author states that...",
-"Which of the following is mentioned in the text...", "What does the passage say about..."
-
-Avoid: Questions requiring inference, interpretation, or external knowledge.
-```
-
-**Inference/Reasoning (Bloom's: Apply/Analyze)**
-```
-COMPREHENSION TYPE: Inference and Reasoning
-
-Generate questions that require readers to draw conclusions not explicitly stated.
-Answers must be logically derivable from textual evidence but not directly quoted.
-
-Target cognitive skills:
-- Drawing logical conclusions from stated information
-- Identifying cause-effect relationships
-- Recognizing implied meanings and author's purpose
-- Comparing and contrasting ideas within the passage
-
-Question stems to use: "Based on the passage, it can be inferred that...",
-"The author implies that...", "What conclusion can be drawn from...",
-"Why does the author most likely..."
-
-Requirement: The rationale must cite specific textual evidence supporting the inference.
-```
-
-**Synthesis (Bloom's: Evaluate/Create)**
-```
-COMPREHENSION TYPE: Synthesis
-
-Generate questions that require integrating multiple parts of the passage or
-connecting ideas to form new understandings.
-
-Target cognitive skills:
-- Connecting themes across different sections of the passage
-- Evaluating the strength of arguments or evidence
-- Identifying how different elements contribute to the whole
-- Applying passage concepts to new scenarios
-
-Question stems to use: "How do the examples in paragraphs X and Y together support...",
-"Which statement best synthesizes the author's main argument...",
-"If the principles described were applied to [scenario], what would likely..."
-
-Requirement: Rationale must reference at least two distinct parts of the passage.
-```
-
-#### Module 3: Question Format Specifications
-
-**Multiple Choice**
-```
-QUESTION FORMAT: Multiple Choice
-
-Structure:
-- One clear question stem
-- Four answer options labeled A, B, C, D
-- Exactly one correct answer
-- Three distractors that are plausible but definitively incorrect
-
-Distractor design principles:
-- Each distractor should represent a common misconception or misreading
-- Avoid "all of the above" or "none of the above"
-- Options should be similar in length and grammatical structure
-- Distractors should not be obviously wrong to someone who hasn't read the passage
-```
-
-**Short Answer (Open-ended)**
-```
-QUESTION FORMAT: Short Answer (Open-ended)
-
-Structure:
-- One clear question requiring a 1-3 sentence response
-- Question should have a focused, specific answer (not open to interpretation)
-- Answer should require demonstration of understanding, not just copying
-
-Ground truth answer requirements:
-- Provide an ideal response (1-3 sentences)
-- Provide 2-3 acceptable answer variations/phrasings
-- Specify required key concepts that must appear in any correct answer
-- Provide a scoring rubric: full credit / partial credit / no credit criteria
-```
-
-**Fill-in-the-Blank**
-```
-QUESTION FORMAT: Fill-in-the-Blank
-
-Structure:
-- A statement from or about the passage with one key term/phrase blanked
-- The blank should test understanding, not just vocabulary recall
-- Provide 1-3 acceptable answers (accounting for synonyms/phrasings)
-
-Design principles:
-- Blank should be a meaningful content word, not a function word
-- Surrounding context should constrain the answer without making it trivial
-- For longer passages, include the sentence/paragraph reference
-```
-
-### 10.4 Output Schema
-
-The complete JSON schema for question generation output:
-
-```json
-{
-  "passage_analysis": {
-    "main_topic": "string - one sentence summary of passage subject",
-    "key_concepts": ["array of 3-5 central concepts/facts in the passage"],
-    "complexity_level": "elementary | intermediate | advanced"
-  },
-  "questions": [
-    {
-      "question_id": "string - unique identifier (q1, q2, etc.)",
-      "question_text": "string - the question being asked",
-      "comprehension_type": "factual_recall | inference | synthesis",
-      "format": "multiple_choice | short_answer | fill_in_blank",
-      "difficulty": "easy | medium | hard",
-
-      // For multiple_choice format:
-      "options": {
-        "A": "string - first option",
-        "B": "string - second option",
-        "C": "string - third option",
-        "D": "string - fourth option"
-      },
-      "correct_answer": "A | B | C | D",
-      "distractor_explanations": {
-        "A": "string - why this is correct/incorrect",
-        "B": "string - why this is incorrect",
-        "C": "string - why this is incorrect",
-        "D": "string - why this is incorrect"
-      },
-
-      // For short_answer format:
-      "ideal_answer": "string - model answer (1-3 sentences)",
-      "acceptable_variations": ["array of alternative correct phrasings"],
-      "required_concepts": ["concepts that must appear in correct answer"],
-      "scoring_rubric": {
-        "full_credit": "string - criteria for full marks",
-        "partial_credit": "string - criteria for partial marks",
-        "no_credit": "string - criteria for zero marks"
-      },
-
-      // For fill_in_blank format:
-      "sentence_with_blank": "string - The _____ was the primary cause of...",
-      "correct_answers": ["array of acceptable fill-in answers"],
-      "context_hint": "string - optional hint for where to find answer",
-
-      // Required for all formats:
-      "rationale": "string - detailed explanation of why the answer is correct",
-      "passage_evidence": "string - direct quote(s) from passage supporting answer",
-      "passage_location": "string - paragraph number or section reference"
-    }
-  ],
-  "generation_metadata": {
-    "passage_word_count": "integer",
-    "questions_generated": "integer",
-    "cognitive_level_distribution": {
-      "factual_recall": "integer",
-      "inference": "integer",
-      "synthesis": "integer"
-    }
-  }
-}
-```
-
-### 10.5 Few-Shot Example (Multiple Choice, Factual Recall)
-
-```json
-{
-  "question_id": "q1",
-  "question_text": "According to the passage, what year was the first successful vaccine developed?",
-  "comprehension_type": "factual_recall",
-  "format": "multiple_choice",
-  "difficulty": "easy",
-  "options": {
-    "A": "1796",
-    "B": "1823",
-    "C": "1885",
-    "D": "1901"
-  },
-  "correct_answer": "A",
-  "distractor_explanations": {
-    "A": "Correct. The passage explicitly states 'Edward Jenner developed the first successful vaccine in 1796.'",
-    "B": "Incorrect. 1823 is when Jenner died, mentioned later in the passage.",
-    "C": "Incorrect. 1885 is when Pasteur developed the rabies vaccine, a different milestone.",
-    "D": "Incorrect. This date is not mentioned in the passage."
-  },
-  "rationale": "This tests direct recall of a key date explicitly stated in paragraph 1.",
-  "passage_evidence": "Edward Jenner developed the first successful vaccine in 1796.",
-  "passage_location": "Paragraph 1"
-}
-```
-
-### 10.6 Generation Instructions Template
-
-```
-PASSAGE TO ANALYZE:
----
-{passage_text}
----
-Word count: approximately {word_count} words
-
-EXISTING QUESTIONS (avoid semantic overlap):
-{list of previous question texts for this document}
-
-GENERATION INSTRUCTIONS:
-1. First, analyze the passage silently to identify its main topic, key concepts,
-   and testable elements.
-2. Generate {num_questions} questions following the specifications above.
-3. Ensure questions cover different parts of the passage (not all from one paragraph).
-4. Target cognitive distribution: ~40% factual, ~40% inference, ~20% synthesis.
-5. Calibrate difficulty appropriately:
-   - Easy: Surface-level, clearly stated information
-   - Medium: Requires careful reading or simple inference
-   - Hard: Requires synthesis or subtle inference
-6. Verify each question is answerable from the passage alone.
-7. Double-check that your JSON is valid before responding.
-
-Respond with the JSON output only. Begin your response with {
-```
-
-### 10.7 Passage Length Adaptations
-
-| Passage Length | Word Count | Adaptations |
-|----------------|------------|-------------|
-| **Short** | <1000 words | Reduce question count (3-4). Prioritize factual and inference over synthesis. Add: "Given the passage brevity, focus on the most significant testable concepts." |
-| **Standard** | 1000-3000 words | Use templates as specified. Target 5-8 questions with balanced cognitive distribution. |
-| **Long** | >3000 words | Add chunking guidance: "Ensure questions draw from all major sections. For synthesis questions, require integration across introduction, body, and conclusion." |
-
-### 10.8 Deduplication Strategy
-
-Before generating questions, Claude should:
+Before generating questions, the AI should:
 
 1. Fetch existing questions via `fastreader_get_question_history`
 2. Compare semantic similarity of new questions to existing ones
@@ -1817,57 +1748,20 @@ Before generating questions, Claude should:
    - Use similar wording (>70% overlap)
    - Test the same concept from the same angle
 
-### 10.9 Quality Validation Pipeline
-
-Research shows even high-performing models produce questions with ~78% quality rates and ~66% cognitive-level alignment. Implement multi-layer validation:
-
-#### Layer 1: Structural Validation (Automated, Instant)
-
-| Check | Implementation | Failure Action |
-|-------|----------------|----------------|
-| JSON syntax valid | Standard JSON parser | Retry with "Fix this JSON: {output}" |
-| Schema compliance | JSON Schema validator | Retry with schema violations highlighted |
-| Required fields present | Schema validation | Flag for regeneration |
-| Enum values valid | Schema validation | Auto-correct if close match, else retry |
-
-#### Layer 2: Content Quality Checks (Automated, Heuristic)
-
-- **Answerability verification**: Use a second LLM call to attempt answering each question using only the passage. If the model cannot answer correctly, flag the question.
-- **Passage evidence validation**: Check that `passage_evidence` field contains text that actually appears in the source passage (fuzzy string matching with >80% similarity threshold).
-- **Difficulty calibration check**: Verify that "easy" questions have shorter, more explicit evidence; "hard" questions require more inference.
-
-#### Layer 3: Semantic Quality Checks (Model-based)
-
-- **Distractor quality scoring**: For multiple choice, verify each distractor is:
-  - Not a near-synonym of the correct answer (embedding similarity <0.85)
-  - Plausible (embedding similarity to question >0.3)
-  - Distinct from other distractors (pairwise similarity <0.8)
-- **Cognitive level verification**: Use a classifier prompt to verify claimed comprehension type matches actual cognitive demand.
-
-#### Layer 4: Batch-Level Statistical Monitoring
-
-| Metric | Target |
-|--------|--------|
-| Schema compliance rate | >98% |
-| Answerability rate | >95% |
-| Cognitive level alignment | >75% |
-| Distractor quality score | >0.7 average |
-| Evidence match rate | >90% |
-
 ---
 
 ## 11. Spaced Repetition System
 
 ### 11.1 Algorithm: FSRS
 
-We implement FSRS (Free Spaced Repetition Scheduler), a modern algorithm that outperforms SM-2 (used by Anki).
+We implement FSRS (Free Spaced Repetition Scheduler) via JavaScript hooks.
 
 #### 11.1.1 Core Concepts
 
 | Term | Description |
 |------|-------------|
 | **Stability** | How long a memory will last (in days) |
-| **Difficulty** | Inherent difficulty of the question (0-1) |
+| **Difficulty** | Inherent difficulty of the question (1-10) |
 | **Retrievability** | Probability of recalling the answer |
 | **State** | Learning stage: New → Learning → Review → Relearning |
 
@@ -1882,238 +1776,200 @@ We implement FSRS (Free Spaced Repetition Scheduler), a modern algorithm that ou
 
 #### 11.1.3 Implementation
 
-```go
-// internal/services/fsrs_service.go
+The FSRS algorithm is implemented in `pb_hooks/fsrs.pb.js` (see Section 4.2.1). Key calculations:
 
-type FSRSParams struct {
-    RequestRetention float64   // Target retention rate (default: 0.9)
-    MaximumInterval  int       // Max days between reviews (default: 36500)
-    Weights          []float64 // Model weights (17 values)
-}
+```javascript
+// Stability increases with successful reviews, decreases on failure
+newStability = rating === 1
+  ? s * 0.2  // Forgot - significant decrease
+  : s * (1 + exp(11) * d^(-0.5) * (s^(-0.2) - 1) * penalties * bonuses)
 
-type CardState struct {
-    Stability  float64
-    Difficulty float64
-    DueAt      time.Time
-    State      int // 0=New, 1=Learning, 2=Review, 3=Relearning
-    Reps       int
-    Lapses     int
-}
+// Difficulty adjusts based on rating relative to "Good" (3)
+newDifficulty = clamp(d + (rating - 3) * 0.5, 1, 10)
 
-func (f *FSRSService) CalculateNextReview(card CardState, rating int) CardState {
-    // FSRS algorithm implementation
-    // Returns updated card state with new due date
-}
-```
-
-#### 11.1.4 State Transitions
-
-```
-                    ┌─────────────────────────────────────┐
-                    │                                     │
-                    ▼                                     │
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐ │
-│   New   │───►│Learning │───►│ Review  │───►│Relearning│─┘
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-                    │              │              │
-                    │              │              │
-                    └──────────────┴──────────────┘
-                         (Rating = 1: Again)
+// Interval calculated from stability and target retention
+interval = round(stability * ln(targetRetention) / ln(0.9))
 ```
 
 ### 11.2 Review Scheduling
 
 - Questions become due when `current_time >= due_at`
 - Due questions sorted by: overdue first, then by due_at
-- Daily review limit: configurable (default: no limit)
-- Review sessions can be done in FastReader UI or Claude Code
+- The hook automatically updates `due_at` after each attempt
 
 ---
 
 ## 12. Distribution & Installation
 
-### 12.1 fastreader-server Binary
+### 12.1 Required Binaries
 
-#### 12.1.1 Build Targets
+| Binary | Source | Purpose |
+|--------|--------|---------|
+| `pocketbase` | pocketbase.io | Backend server |
+| `fastreader-extract` | GitHub releases | PDF/URL extraction |
 
-| Platform | Architecture | Binary Name |
-|----------|--------------|-------------|
-| Linux | amd64 | `fastreader-server-linux-amd64` |
-| Linux | arm64 | `fastreader-server-linux-arm64` |
-| macOS | amd64 | `fastreader-server-darwin-amd64` |
-| macOS | arm64 | `fastreader-server-darwin-arm64` |
-| Windows | amd64 | `fastreader-server-windows-amd64.exe` |
-
-#### 12.1.2 Installation
+### 12.2 PocketBase Installation
 
 ```bash
-# Linux/macOS
-curl -L https://github.com/username/fastreader/releases/latest/download/fastreader-server-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m) -o fastreader-server
-chmod +x fastreader-server
-sudo mv fastreader-server /usr/local/bin/
+# Download from pocketbase.io/docs
+# Or use package manager:
 
-# Or with Homebrew (future)
-brew install fastreader-server
+# macOS
+brew install pocketbase/tap/pocketbase
 
-# Windows (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/username/fastreader/releases/latest/download/fastreader-server-windows-amd64.exe" -OutFile "fastreader-server.exe"
+# Linux (manual)
+wget https://github.com/pocketbase/pocketbase/releases/download/v0.23.0/pocketbase_0.23.0_linux_amd64.zip
+unzip pocketbase_0.23.0_linux_amd64.zip
+
+# Start server
+./pocketbase serve
 ```
 
-#### 12.1.3 Running
+### 12.3 fastreader-extract Installation
 
 ```bash
-# Start server (foreground)
-fastreader-server
-
-# Start server (background)
-fastreader-server &
-
-# With custom port
-fastreader-server --port 9000
-
-# With custom data directory
-fastreader-server --data-dir /path/to/data
+# Download from GitHub releases
+curl -L https://github.com/username/fastreader/releases/latest/download/fastreader-extract-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m) -o fastreader-extract
+chmod +x fastreader-extract
+sudo mv fastreader-extract /usr/local/bin/
 ```
 
-### 12.2 MCP Server
+**Build Targets:**
 
-#### 12.2.1 Installation via npm
+| Platform | Binary Name |
+|----------|-------------|
+| Linux amd64 | `fastreader-extract-linux-amd64` |
+| Linux arm64 | `fastreader-extract-linux-arm64` |
+| macOS amd64 | `fastreader-extract-darwin-amd64` |
+| macOS arm64 | `fastreader-extract-darwin-arm64` |
+| Windows amd64 | `fastreader-extract-windows-amd64.exe` |
+
+### 12.4 MCP Server Installation
 
 ```bash
-# Global install
+# Via npx (no install)
+claude mcp add fastreader -- npx @anthropic/fastreader-mcp
+
+# Or global install
 npm install -g @anthropic/fastreader-mcp
-
-# Add to Claude Code
 claude mcp add fastreader -- fastreader-mcp
 ```
 
-#### 12.2.2 Installation via npx (no install)
+### 12.5 FastReader Configuration
 
-```bash
-claude mcp add fastreader -- npx @anthropic/fastreader-mcp
-```
-
-### 12.3 FastReader Web App
-
-#### 12.3.1 Configuration
-
-FastReader needs to know where the backend is:
+FastReader needs to know where PocketBase is running:
 
 ```typescript
 // Environment variable or localStorage
-const FASTREADER_API_URL = process.env.VITE_FASTREADER_API_URL
-  || localStorage.getItem('fastreader_api_url')
-  || 'http://localhost:8745';
+const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL
+  || localStorage.getItem('pocketbase_url')
+  || 'http://127.0.0.1:8090';
 ```
 
-#### 12.3.2 Backend Detection
+### 12.6 Quick Start
 
-On startup, FastReader:
-1. Attempts to connect to configured backend URL
-2. Falls back to `localhost:8745` if not configured
-3. Shows connection status in UI
-4. Disables comprehension features if backend unavailable
+```bash
+# 1. Start PocketBase
+./pocketbase serve
 
-### 12.4 Docker (Future)
+# 2. Import schema (first time)
+./pocketbase migrate up
 
-```yaml
-# docker-compose.yml
-version: '3.8'
+# 3. Add MCP server to AI CLI
+claude mcp add fastreader -- npx @anthropic/fastreader-mcp
 
-services:
-  fastreader-server:
-    image: ghcr.io/username/fastreader-server:latest
-    ports:
-      - "8745:8745"
-    volumes:
-      - ~/.fastreader:/root/.fastreader
-    restart: unless-stopped
-
-  fastreader-mcp:
-    image: ghcr.io/username/fastreader-mcp:latest
-    depends_on:
-      - fastreader-server
-    environment:
-      - FASTREADER_API_URL=http://fastreader-server:8745
+# 4. Open FastReader
+open http://localhost:5173  # or wherever FastReader is served
 ```
 
 ---
 
 ## 13. Implementation Roadmap
 
-### Phase 1: Foundation (MVP)
+### Phase 1: Foundation
 
-**Goal**: Basic question generation and storage
-
-| Task | Component | Priority |
-|------|-----------|----------|
-| Set up Go project structure | fastreader-server | P0 |
-| Implement SQLite schema and migrations | fastreader-server | P0 |
-| Document CRUD endpoints | fastreader-server | P0 |
-| Session management endpoints | fastreader-server | P0 |
-| Question storage endpoints | fastreader-server | P0 |
-| Basic MCP server with 4 core tools | fastreader-mcp | P0 |
-| FastReader: Backend connection | FastReader | P0 |
-| FastReader: Save documents to backend | FastReader | P0 |
-| FastReader: Session sync with backend | FastReader | P0 |
-
-**Deliverable**: User can read in FastReader, ask Claude Code for questions, questions are saved to database.
-
-### Phase 2: Quiz Interface
-
-**Goal**: Answer questions in FastReader UI
+**Goal**: PocketBase + basic question storage
 
 | Task | Component | Priority |
 |------|-----------|----------|
+| Download and configure PocketBase | Backend | P0 |
+| Create collections via Dashboard or migrations | Backend | P0 |
+| Implement FSRS hook | pb_hooks | P0 |
+| Implement milestone detection hook | pb_hooks | P0 |
+| Basic MCP server with core tools | fastreader-mcp | P0 |
+| FastReader: PocketBase client integration | FastReader | P0 |
+| FastReader: SSE subscription setup | FastReader | P0 |
+| FastReader: Save documents to PocketBase | FastReader | P0 |
+
+**Deliverable**: User can read in FastReader, ask AI CLI for questions, questions sync back via SSE.
+
+### Phase 2: In-App Generation
+
+**Goal**: Generate questions from FastReader UI
+
+| Task | Component | Priority |
+|------|-----------|----------|
+| CLI spawner service | FastReader | P1 |
+| "Generate Quiz" button and overlay | FastReader | P1 |
 | Quiz modal component | FastReader | P1 |
 | MCQ question component | FastReader | P1 |
-| Open-ended question component | FastReader | P1 |
-| Answer submission to backend | FastReader | P1 |
-| Answer feedback display | FastReader | P1 |
-| Milestone detection and prompts | FastReader | P1 |
-| Milestone API endpoints | fastreader-server | P1 |
+| Answer submission to PocketBase | FastReader | P1 |
+| Answer feedback with FSRS rating | FastReader | P1 |
+| Milestone prompt UI | FastReader | P1 |
 
-**Deliverable**: User can answer questions in FastReader UI with feedback.
+**Deliverable**: User can generate and answer questions entirely within FastReader UI.
 
-### Phase 3: Spaced Repetition
+### Phase 3: Additional Question Types
 
-**Goal**: FSRS-based review scheduling
+**Goal**: Short answer and fill-in-blank
 
 | Task | Component | Priority |
 |------|-----------|----------|
-| FSRS algorithm implementation | fastreader-server | P2 |
-| Due questions endpoint | fastreader-server | P2 |
-| Rating submission and state update | fastreader-server | P2 |
-| MCP tools for review workflow | fastreader-mcp | P2 |
-| Review dashboard UI | FastReader | P2 |
-| Daily due questions display | FastReader | P2 |
+| Short answer question component | FastReader | P2 |
+| Fill-in-blank question component | FastReader | P2 |
+| Self-assessment UI | FastReader | P2 |
+| AI evaluation integration | FastReader | P2 |
 
-**Deliverable**: Questions are scheduled for review, users can do daily reviews.
+**Deliverable**: All three question types work in FastReader UI.
 
-### Phase 4: Document Import
+### Phase 4: Text Extraction
 
-**Goal**: Import from files and URLs
+**Goal**: Import from PDF and URL
 
 | Task | Component | Priority |
 |------|-----------|----------|
-| PDF text extraction | fastreader-server | P3 |
-| URL content extraction | fastreader-server | P3 |
-| File upload endpoint | fastreader-server | P3 |
+| fastreader-extract CLI | fastreader-extract | P3 |
+| PDF extraction (Go) | fastreader-extract | P3 |
+| URL extraction (Go) | fastreader-extract | P3 |
 | Import UI in FastReader | FastReader | P3 |
+| Integration with extractor | FastReader | P3 |
 
 **Deliverable**: Users can import PDFs and web articles.
 
-### Phase 5: Polish & Distribution
+### Phase 5: Review Dashboard
+
+**Goal**: Spaced repetition management
+
+| Task | Component | Priority |
+|------|-----------|----------|
+| Review dashboard page | FastReader | P4 |
+| Due questions display | FastReader | P4 |
+| Review session flow | FastReader | P4 |
+| Statistics display | FastReader | P4 |
+
+**Deliverable**: Users can manage and complete spaced repetition reviews in FastReader.
+
+### Phase 6: Polish & Distribution
 
 **Goal**: Easy installation and great UX
 
 | Task | Component | Priority |
 |------|-----------|----------|
-| GitHub releases with binaries | fastreader-server | P4 |
-| npm package for MCP server | fastreader-mcp | P4 |
-| Installation documentation | All | P4 |
-| Error handling and edge cases | All | P4 |
-| Performance optimization | All | P4 |
+| GitHub releases for fastreader-extract | fastreader-extract | P5 |
+| npm package for MCP server | fastreader-mcp | P5 |
+| PocketBase migration scripts | Backend | P5 |
+| Installation documentation | All | P5 |
+| Error handling improvements | All | P5 |
 
 **Deliverable**: Polished, easy-to-install product.
 
@@ -2121,172 +1977,131 @@ services:
 
 ## 14. Future Considerations
 
-### 14.1 Potential Features (Not in MVP)
+### 14.1 Potential Features (Post-MVP)
 
 | Feature | Description | Complexity |
 |---------|-------------|------------|
-| **Cloud sync** | Optional backup/sync to user's cloud storage | High |
-| **Multiple users** | Profiles with separate data | Medium |
+| **Cloud sync** | Optional backup/sync via PocketBase S3 | Medium |
+| **Multiple AI CLIs** | UI to select/configure preferred CLI | Low |
 | **Custom questions** | Allow users to add their own questions | Low |
 | **Highlights & notes** | Integrate with existing highlighting features | Medium |
 | **Export data** | Export questions/stats to Anki, CSV, etc. | Low |
 | **Gamification** | Streaks, achievements, XP | Medium |
 | **Mobile app** | React Native or PWA | High |
 | **Reading analytics** | WPM trends, comprehension over time | Medium |
-| **Semantic deduplication** | Use embeddings to detect similar questions | Medium |
 
-### 14.2 Alternative Architectures Considered
-
-| Alternative | Pros | Cons | Decision |
-|-------------|------|------|----------|
-| **Tauri desktop app** | Native, single binary | Overkill, harder to develop | Rejected |
-| **Browser extension** | No server needed | Limited storage, complex | Rejected |
-| **SaaS backend** | Easy scaling, no local setup | Not local-first, privacy concerns | Rejected |
-| **SQLite in browser (OPFS)** | No server needed | No Claude Code integration | Rejected |
-| **File-based storage** | Simplest | Harder queries, no ACID | Rejected |
-
-### 14.3 Security Considerations
+### 14.2 Security Considerations
 
 | Concern | Mitigation |
 |---------|------------|
-| Backend exposed to network | Bind to 127.0.0.1 only by default |
-| API authentication | Not needed for single-user local |
-| Data at rest | SQLite file in user's home directory |
-| MCP server permissions | Only accesses local backend |
+| Backend exposed to network | PocketBase binds to 127.0.0.1 only by default |
+| CLI spawning | Only spawn configured command, sanitize inputs |
+| Data at rest | SQLite file in user's directory |
+| SSE connections | Local only, no auth needed for single-user |
 
-### 14.4 Performance Considerations
+### 14.3 Performance Considerations
 
 | Concern | Mitigation |
 |---------|------------|
 | Large documents | Stream content, paginate in UI |
-| Many questions | Index on document_id, paginated queries |
-| FSRS calculations | Lightweight, sub-millisecond |
-| Backend startup time | Go binary starts in <100ms |
+| Many questions | PocketBase auto-indexes, paginated queries |
+| FSRS calculations | Lightweight JS, sub-millisecond |
+| SSE connections | PocketBase handles cleanup automatically |
+| CLI spawning | One process at a time, timeout enforcement |
 
 ---
 
-## Appendix A: Example Interactions
+## Appendix A: Configuration Reference
 
-### A.1 Claude Code: Generate Questions
+### A.1 AI Assistant Configuration
 
+```yaml
+# ~/.fastreader/config.yaml (or localStorage in FastReader)
+
+ai_assistant:
+  # The CLI command to execute
+  command: "claude"
+
+  # Additional arguments (--print for non-interactive mode)
+  args: ["--print"]
+
+  # Timeout in seconds before killing the process
+  timeout: 300
+
+# Alternative configurations:
+#
+# For Codex CLI:
+# ai_assistant:
+#   command: "codex"
+#   args: ["--quiet"]
+#   timeout: 300
+#
+# For OpenCode:
+# ai_assistant:
+#   command: "opencode"
+#   args: ["run"]
+#   timeout: 300
 ```
-User: Generate some comprehension questions for what I've been reading
 
-Claude: I'll check your current reading session and generate some questions.
+### A.2 PocketBase Settings
 
-[Calls fastreader_get_current_session]
-[Calls fastreader_get_question_history]
+Access via Admin Dashboard: `http://127.0.0.1:8090/_/`
 
-You're reading "The Innovator's Dilemma" and you're 34% through (about 8,500 words).
-You've already answered 6 questions on this document.
-
-Let me generate 5 new questions focused on what you just read about disruptive innovation...
-
-[Generates questions]
-[Calls fastreader_save_questions]
-
-I've created 5 new questions:
-
-1. (MCQ) According to Christensen, what distinguishes disruptive innovations from sustaining innovations?
-2. (MCQ) What example does the author use to illustrate the "performance oversupply" concept?
-3. (Open-ended) Explain why established companies often fail to adopt disruptive technologies despite being aware of them.
-4. (MCQ) The concept of "value networks" suggests that...
-5. (Open-ended) How does the steel mini-mill example support the book's central thesis?
-
-Would you like to answer these now, or save them for later in FastReader?
-```
-
-### A.2 Claude Code: Review Session
-
-```
-User: What do I have to review today?
-
-Claude: [Calls fastreader_get_due_questions]
-
-You have 8 questions due for review today:
-
-📚 "The Innovator's Dilemma" - 5 questions
-📚 "Thinking, Fast and Slow" - 3 questions
-
-Would you like to start reviewing? I can quiz you here, or you can do it in FastReader.
-
-User: Let's do it here
-
-Claude: Great! Let's start.
-
-Question 1 of 8 (from "The Innovator's Dilemma"):
-
-What distinguishes disruptive innovations from sustaining innovations?
-
-A) Disruptive innovations are always technologically superior
-B) Disruptive innovations initially underperform on traditional metrics but excel on new ones
-C) Sustaining innovations are cheaper to develop
-D) Disruptive innovations require more R&D investment
-
-User: B
-
-Claude: ✓ Correct!
-
-Disruptive innovations typically start with worse performance on metrics that mainstream customers care about, but they offer other benefits (simplicity, convenience, lower cost) that appeal to different customers or create new markets.
-
-How would you rate that question?
-1 - Again (forgot)
-2 - Hard (struggled to remember)
-3 - Good (remembered with some effort)
-4 - Easy (instant recall)
-
-User: 3
-
-Claude: [Calls fastreader_record_answer with rating=3]
-
-Got it. This question will come up again in about 4 days.
-
-Question 2 of 8...
-```
+| Setting | Location | Default |
+|---------|----------|---------|
+| Server port | CLI flag `--http` | 8090 |
+| Data directory | CLI flag `--dir` | ./pb_data |
+| Auto-migrate | CLI flag `--automigrate` | true |
 
 ---
 
-## Appendix B: Error Handling
+## Appendix B: Troubleshooting
 
-### B.1 Backend Not Running
+### B.1 PocketBase Not Running
 
-FastReader should gracefully handle missing backend:
-
-```typescript
-// On API call failure
-if (error.code === 'ECONNREFUSED') {
-  showNotification({
-    type: 'warning',
-    title: 'Backend not running',
-    message: 'Start fastreader-server to enable comprehension features',
-    action: {
-      label: 'How to start',
-      onClick: () => openDocs('setup')
-    }
-  });
-}
+```
+Error: PocketBase is not running. Please start it with: ./pocketbase serve
 ```
 
-### B.2 MCP Server Errors
-
-```typescript
-// In MCP server
-try {
-  const result = await callBackend(method, path, body);
-  return { content: [{ type: "text", text: JSON.stringify(result) }] };
-} catch (error) {
-  if (error.code === 'ECONNREFUSED') {
-    return {
-      content: [{
-        type: "text",
-        text: "Error: FastReader backend is not running. Please start it with: fastreader-server"
-      }],
-      isError: true
-    };
-  }
-  // ... other error handling
-}
+**Solution:**
+```bash
+cd /path/to/fastreader-backend
+./pocketbase serve
 ```
+
+### B.2 MCP Server Not Found
+
+```
+Error: MCP server 'fastreader' not found
+```
+
+**Solution:**
+```bash
+# Re-add the MCP server
+claude mcp add fastreader -- npx @anthropic/fastreader-mcp
+
+# Verify it's registered
+claude mcp list
+```
+
+### B.3 SSE Connection Lost
+
+FastReader will show "Reconnecting..." status. This is automatic - no action needed. If it persists:
+
+1. Check PocketBase is still running
+2. Check browser console for errors
+3. Refresh the page
+
+### B.4 Question Generation Timeout
+
+```
+Error: Question generation timed out
+```
+
+**Solutions:**
+1. Increase timeout in config (default 300 seconds)
+2. Try generating fewer questions
+3. Check AI CLI is properly configured and authenticated
 
 ---
 
