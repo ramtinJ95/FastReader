@@ -109,3 +109,31 @@ describe('Button Callbacks', () => {
     expect(onPlay).not.toHaveBeenCalled();
   });
 });
+
+describe('Minimal Mode', () => {
+  it('should apply minimal class when minimal is true', () => {
+    const { container } = render(<Controls {...defaultProps} minimal={true} />);
+
+    expect(container.querySelector('.controls')).toHaveClass('minimal');
+  });
+
+  it('should hide text labels in minimal mode', () => {
+    render(<Controls {...defaultProps} minimal={true} />);
+
+    // In minimal mode, there should be no text spans
+    const playButton = screen.getByRole('button', { name: /play/i });
+    expect(playButton.querySelector('span')).not.toBeInTheDocument();
+  });
+
+  it('should hide Restart button in minimal mode', () => {
+    render(<Controls {...defaultProps} minimal={true} />);
+
+    expect(screen.queryByRole('button', { name: /restart/i })).not.toBeInTheDocument();
+  });
+
+  it('should show Restart button in normal mode', () => {
+    render(<Controls {...defaultProps} minimal={false} />);
+
+    expect(screen.getByRole('button', { name: /restart/i })).toBeInTheDocument();
+  });
+});
