@@ -117,6 +117,44 @@ button:disabled {
   opacity: 0.3;
 }
 
+/* Shared button styles */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--color-accent);
+  color: var(--color-text);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn.secondary {
+  background: var(--color-bg-button);
+  color: var(--color-text);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background: var(--color-bg-button-hover);
+}
+
 /* Input reset */
 input,
 textarea {
