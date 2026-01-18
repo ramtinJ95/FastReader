@@ -48,9 +48,14 @@ export function RSVPDisplay({
   };
 
   return (
-    <div className="rsvp-display">
+    <div className="rsvp-display" role="region" aria-label="RSVP word display">
+      {/* Screen reader announcement (visually hidden) */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {currentWord || 'Ready to read'}
+      </div>
+
       {/* Focus markers */}
-      <div className="focus-marker">
+      <div className="focus-marker" aria-hidden="true">
         <div className="marker-line top" />
         <div className="marker-line bottom" />
       </div>
@@ -59,6 +64,7 @@ export function RSVPDisplay({
       <div
         className={`word-container ${useMultiMode ? 'multi-mode' : ''}`}
         style={transitionStyle}
+        aria-hidden="true"
       >
         {currentWord ? (
           <>
