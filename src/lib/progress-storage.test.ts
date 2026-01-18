@@ -95,9 +95,30 @@ describe('progress-storage', () => {
       expect(hasSession()).toBe(false);
     });
 
-    it('should return true when session exists', () => {
-      localStorageMock.setItem('fastreader-session', '{}');
+    it('should return true when valid session exists', () => {
+      const session = {
+        text: 'Test',
+        currentWordIndex: 0,
+        totalWords: 1,
+        settings: DEFAULT_SETTINGS,
+        savedAt: Date.now(),
+      };
+      localStorageMock.setItem('fastreader-session', JSON.stringify(session));
       expect(hasSession()).toBe(true);
+    });
+
+    it('should return false and clear expired session', () => {
+      const expiredSession = {
+        text: 'Test',
+        currentWordIndex: 0,
+        totalWords: 1,
+        settings: DEFAULT_SETTINGS,
+        savedAt: Date.now() - 31 * 24 * 60 * 60 * 1000, // 31 days ago
+      };
+      localStorageMock.setItem('fastreader-session', JSON.stringify(expiredSession));
+
+      expect(hasSession()).toBe(false);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('fastreader-session');
     });
   });
 
@@ -123,7 +144,7 @@ describe('progress-storage', () => {
         currentWordIndex: 5,
         totalWords: 100,
         settings: DEFAULT_SETTINGS,
-        savedAt: 1234567890,
+        savedAt: Date.now(),
       };
 
       localStorageMock.setItem('fastreader-session', JSON.stringify(session));
@@ -132,9 +153,25 @@ describe('progress-storage', () => {
       expect(summary).toEqual({
         currentWordIndex: 5,
         totalWords: 100,
-        savedAt: 1234567890,
+        savedAt: session.savedAt,
         hasText: true,
       });
+    });
+
+    it('should return null and clear expired session', () => {
+      const expiredSession = {
+        text: 'Hello world',
+        currentWordIndex: 5,
+        totalWords: 100,
+        settings: DEFAULT_SETTINGS,
+        savedAt: Date.now() - 31 * 24 * 60 * 60 * 1000, // 31 days ago
+      };
+
+      localStorageMock.setItem('fastreader-session', JSON.stringify(expiredSession));
+
+      const summary = getSessionSummary();
+      expect(summary).toBeNull();
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('fastreader-session');
     });
   });
 
