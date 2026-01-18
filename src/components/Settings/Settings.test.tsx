@@ -171,3 +171,33 @@ describe('Slider Settings', () => {
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 });
+
+describe('Close Behavior', () => {
+  it('should call onClose when close button clicked', () => {
+    const onClose = vi.fn();
+    render(<Settings {...defaultProps} onClose={onClose} />);
+
+    fireEvent.click(screen.getByLabelText(/close settings/i));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should call onClose when overlay clicked', () => {
+    const onClose = vi.fn();
+    const { container } = render(<Settings {...defaultProps} onClose={onClose} />);
+
+    const overlay = container.querySelector('.settings-overlay');
+    fireEvent.click(overlay!);
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should not call onClose when panel clicked', () => {
+    const onClose = vi.fn();
+    const { container } = render(<Settings {...defaultProps} onClose={onClose} />);
+
+    const panel = container.querySelector('.settings-panel');
+    fireEvent.click(panel!);
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
