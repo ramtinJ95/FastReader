@@ -11,6 +11,9 @@ export interface Settings {
   pauseAfterWords: number;
   pauseDuration: number;
   frameWordCount: number;
+  rampUpEnabled: boolean;
+  rampUpStartWpm: number;
+  rampUpDuration: number; // in seconds
 }
 
 /**
@@ -26,6 +29,9 @@ export const DEFAULT_SETTINGS: Settings = {
   pauseAfterWords: 0,
   pauseDuration: 500,
   frameWordCount: 1,
+  rampUpEnabled: false,
+  rampUpStartWpm: 250,
+  rampUpDuration: 60, // 1 minute
 };
 
 /**

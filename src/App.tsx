@@ -231,10 +231,10 @@ function AppContent() {
     }));
   }, []);
 
-  // Derived values
+  // Derived values - use currentWpm from playback for accurate time remaining with ramp-up
   const timeRemaining = formatTimeRemaining(
     playback.words.length - playback.currentWordIndex,
-    settings.wordsPerMinute
+    playback.currentWpm
   );
 
   const { subset: wordGroup, centerOffset: highlightIndex } = useMemo(
@@ -310,7 +310,7 @@ function AppContent() {
       <footer className="bottom-bar">
         {isFocusMode && (
           <TouchControls
-            wpm={settings.wordsPerMinute}
+            wpm={playback.currentWpm}
             onSkipBackward={handleTouchSkipBackward}
             onSkipForward={handleTouchSkipForward}
             onDecreaseWPM={handleTouchDecreaseWPM}
@@ -322,7 +322,7 @@ function AppContent() {
           progress={playback.progress}
           currentWord={playback.currentWordIndex}
           totalWords={playback.words.length}
-          wpm={settings.wordsPerMinute}
+          wpm={playback.currentWpm}
           timeRemaining={timeRemaining}
           minimal={isFocusMode}
           clickable={true}
