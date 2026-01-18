@@ -33,8 +33,14 @@ export function SavedSessionPrompt({
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog saved-session-dialog" onClick={(e) => e.stopPropagation()}>
-        <h3>Resume Reading?</h3>
+      <div
+        className="dialog saved-session-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saved-session-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="saved-session-title">Resume Reading?</h3>
 
         <p className="session-info">
           You have a saved session from <strong>{formatRelativeTime(summary.savedAt)}</strong>

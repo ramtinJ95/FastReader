@@ -95,9 +95,15 @@ export function TextInput({
 
   return (
     <div className="text-input-overlay" onClick={onClose}>
-      <div className="text-input-panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="text-input-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="text-input-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="text-input-header">
-          <h2>Load Text</h2>
+          <h2 id="text-input-title">Load Text</h2>
           <button className="close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
           </button>
@@ -133,7 +139,7 @@ export function TextInput({
           )}
 
           {/* Error Message */}
-          {displayError && <p className="error-message">{displayError}</p>}
+          {displayError && <p id="text-input-error" className="error-message" role="alert">{displayError}</p>}
 
           {/* Divider */}
           <div className="divider">
@@ -142,12 +148,17 @@ export function TextInput({
 
           {/* Text Input Form */}
           <form onSubmit={handleApply}>
+            <label htmlFor="text-input-textarea" className="visually-hidden">
+              Paste your text here
+            </label>
             <textarea
+              id="text-input-textarea"
               value={text}
               onChange={handleTextChange}
               placeholder="Paste your text here..."
               rows={8}
               disabled={isLoading}
+              aria-describedby={displayError ? 'text-input-error' : undefined}
             />
 
             <div className="actions">

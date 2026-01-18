@@ -69,10 +69,20 @@ export function JumpToDialog({ isOpen, totalWords, onClose, onJump }: JumpToDial
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog jump-to-dialog" onClick={(e) => e.stopPropagation()}>
-        <h3>Jump to</h3>
+      <div
+        className="dialog jump-to-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="jump-to-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="jump-to-title">Jump to</h3>
         <form onSubmit={handleSubmit}>
+          <label htmlFor="jump-to-input" className="visually-hidden">
+            Jump to word number or percentage
+          </label>
           <input
+            id="jump-to-input"
             type="text"
             value={value}
             onChange={(e) => {
@@ -82,9 +92,10 @@ export function JumpToDialog({ isOpen, totalWords, onClose, onJump }: JumpToDial
             onKeyDown={handleKeyDown}
             placeholder="Word # or %"
             autoFocus
+            aria-describedby={error ? 'jump-to-error' : 'jump-to-hint'}
           />
-          {error && <p className="error">{error}</p>}
-          <p className="hint">
+          {error && <p id="jump-to-error" className="error" role="alert">{error}</p>}
+          <p id="jump-to-hint" className="hint">
             Enter word number (0-{totalWords}) or percentage (e.g., 50%)
           </p>
           <div className="dialog-actions">
