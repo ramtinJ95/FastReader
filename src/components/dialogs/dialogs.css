@@ -1,0 +1,106 @@
+/* Dialog overlay */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--spacing-xl);
+}
+
+/* Dialog container */
+.dialog {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 320px;
+  width: 100%;
+}
+
+.dialog h3 {
+  margin-bottom: var(--spacing-md);
+  font-size: 1.25rem;
+}
+
+/* Form elements */
+.dialog input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 1rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.dialog input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.dialog .hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.dialog .error {
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Dialog actions */
+.dialog-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  border: none;
+}
+
+.btn.primary {
+  background: var(--color-accent);
+  color: var(--color-text);
+}
+
+.btn.primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn.secondary {
+  background: var(--color-bg-button);
+  color: var(--color-text);
+}
+
+.btn.secondary:hover {
+  background: var(--color-bg-button-hover);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .dialog-overlay {
+    padding: var(--spacing-md);
+  }
+
+  .dialog {
+    padding: var(--spacing-md);
+  }
+
+  .dialog input {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+}
