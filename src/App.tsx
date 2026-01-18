@@ -1,17 +1,47 @@
 import { useState } from 'react';
 import { RSVPDisplay } from './components/RSVPDisplay';
+import { Controls } from './components/Controls';
 import './App.css';
 
 function App() {
-  const [word] = useState('Reading');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   return (
     <div className="app">
-      <h1>FastReader - Phase 2</h1>
-      <div style={{ width: '100%', height: '300px', border: '1px solid #333' }}>
-        <RSVPDisplay word={word} />
+      <h1>FastReader - Controls Demo</h1>
+      <div style={{ width: '100%', height: '300px' }}>
+        <RSVPDisplay word="Testing" />
       </div>
-      <p>The "a" should be highlighted in red and centered</p>
+      <div style={{ marginTop: '1rem' }}>
+        <Controls
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          onPlay={() => {
+            setIsPlaying(true);
+            setIsPaused(false);
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+            setIsPaused(true);
+          }}
+          onResume={() => {
+            setIsPlaying(true);
+            setIsPaused(false);
+          }}
+          onStop={() => {
+            setIsPlaying(false);
+            setIsPaused(false);
+          }}
+          onRestart={() => {
+            setIsPlaying(true);
+            setIsPaused(false);
+          }}
+        />
+      </div>
+      <p style={{ marginTop: '1rem', color: '#666' }}>
+        State: {isPlaying ? 'Playing' : isPaused ? 'Paused' : 'Stopped'}
+      </p>
     </div>
   );
 }
