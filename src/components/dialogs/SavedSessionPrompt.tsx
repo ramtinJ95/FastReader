@@ -1,3 +1,4 @@
+import { formatRelativeTime } from '../../lib/date-utils';
 import './dialogs.css';
 
 export interface SavedSessionPromptProps {
@@ -15,22 +16,6 @@ export interface SavedSessionPromptProps {
   onStartFresh: () => void;
   /** Called when prompt should close */
   onClose: () => void;
-}
-
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-
-  return date.toLocaleDateString();
 }
 
 export function SavedSessionPrompt({
@@ -52,7 +37,7 @@ export function SavedSessionPrompt({
         <h3>Resume Reading?</h3>
 
         <p className="session-info">
-          You have a saved session from <strong>{formatDate(summary.savedAt)}</strong>
+          You have a saved session from <strong>{formatRelativeTime(summary.savedAt)}</strong>
         </p>
 
         <div className="session-stats">
