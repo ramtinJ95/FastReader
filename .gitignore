@@ -26,3 +26,10 @@ dist-ssr
 # Project specific
 plans/
 ralph-logs/
+ralph-loop.txt
+
+# Test outputs
+coverage/
+playwright-report/
+test-results/
+.playwright-mcp/

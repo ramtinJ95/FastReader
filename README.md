@@ -2,8 +2,6 @@
 
 A fast, distraction-free speed reading app using RSVP (Rapid Serial Visual Presentation) technique.
 
-![FastReader Screenshot](screenshot.png)
-
 ## Features
 
 - **RSVP Reading**: Display one word at a time at a fixed focal point
@@ -15,18 +13,44 @@ A fast, distraction-free speed reading app using RSVP (Rapid Serial Visual Prese
 - **Mobile Friendly**: Touch controls for mobile devices
 - **Dark Theme**: Easy on the eyes for extended reading
 
-## Quick Start
+## Running Locally
+
+### Prerequisites
+
+- Node.js 18+ (check with `node --version`)
+- npm (comes with Node.js)
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ramtinJ95/FastReader.git
+   cd FastReader
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open http://localhost:5173 in your browser
+
+### Production Build
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
 # Build for production
 npm run build
+
+# Preview the production build locally
+npm run preview
 ```
+
+The production build outputs to `dist/` and can be served by any static file host.
 
 ## Keyboard Shortcuts
 
