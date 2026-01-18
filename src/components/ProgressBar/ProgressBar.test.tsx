@@ -107,3 +107,71 @@ describe('Click-to-Seek', () => {
     expect(progressContainer).not.toHaveAttribute('role');
   });
 });
+
+describe('Keyboard Navigation', () => {
+  it('should seek forward with ArrowRight', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={50} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'ArrowRight' });
+    expect(onSeek).toHaveBeenCalledWith(51);
+  });
+
+  it('should seek backward with ArrowLeft', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={50} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'ArrowLeft' });
+    expect(onSeek).toHaveBeenCalledWith(49);
+  });
+
+  it('should seek 10% with Shift+Arrow', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={50} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'ArrowRight', shiftKey: true });
+    expect(onSeek).toHaveBeenCalledWith(60);
+  });
+
+  it('should seek to 0% with Home', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={50} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'Home' });
+    expect(onSeek).toHaveBeenCalledWith(0);
+  });
+
+  it('should seek to 100% with End', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={50} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'End' });
+    expect(onSeek).toHaveBeenCalledWith(100);
+  });
+
+  it('should clamp keyboard navigation to bounds', () => {
+    const onSeek = vi.fn();
+    const { container } = render(
+      <ProgressBar {...defaultProps} progress={99} clickable={true} onSeek={onSeek} />
+    );
+
+    const progressContainer = container.querySelector('.progress-container');
+    fireEvent.keyDown(progressContainer!, { key: 'ArrowRight', shiftKey: true });
+    expect(onSeek).toHaveBeenCalledWith(100);
+  });
+});
