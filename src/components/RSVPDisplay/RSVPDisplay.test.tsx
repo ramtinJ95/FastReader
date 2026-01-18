@@ -12,4 +12,16 @@ describe('RSVPDisplay', () => {
     render(<RSVPDisplay word="" />);
     expect(screen.getByText('Ready')).toBeInTheDocument();
   });
+
+  it('should render focus markers', () => {
+    const { container } = render(<RSVPDisplay word="hello" />);
+
+    const focusMarker = container.querySelector('.focus-marker');
+    expect(focusMarker).toBeInTheDocument();
+
+    const topMarker = container.querySelector('.marker-line.top');
+    const bottomMarker = container.querySelector('.marker-line.bottom');
+    expect(topMarker).toBeInTheDocument();
+    expect(bottomMarker).toBeInTheDocument();
+  });
 });

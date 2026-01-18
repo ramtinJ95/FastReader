@@ -86,6 +86,37 @@
   line-height: 1;
 }
 
+/* Focus markers - red gradient lines pointing to the center */
+.focus-marker {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  width: 3px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.marker-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+
+/* Top marker - fades down from red */
+.marker-line.top {
+  top: 0;
+  height: 50px;
+  background: linear-gradient(to bottom, var(--color-accent), transparent);
+}
+
+/* Bottom marker - fades up from red */
+.marker-line.bottom {
+  bottom: 0;
+  height: 50px;
+  background: linear-gradient(to top, var(--color-accent), transparent);
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .rsvp-display {
@@ -94,6 +125,18 @@
 
   .word-container.multi-mode {
     font-size: clamp(0.9rem, 3.5vw, 2rem);
+  }
+
+  .marker-line {
+    height: 30px;
+  }
+
+  .marker-line.top {
+    height: 30px;
+  }
+
+  .marker-line.bottom {
+    height: 30px;
   }
 }
 
