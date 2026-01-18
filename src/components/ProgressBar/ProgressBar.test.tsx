@@ -22,3 +22,26 @@ describe('ProgressBar', () => {
     expect(progressBar).toHaveStyle({ width: '75%' });
   });
 });
+
+describe('Stats Display', () => {
+  it('should display word count', () => {
+    render(<ProgressBar {...defaultProps} currentWord={25} totalWords={100} />);
+    expect(screen.getByText('25 / 100')).toBeInTheDocument();
+  });
+
+  it('should display WPM', () => {
+    render(<ProgressBar {...defaultProps} wpm={400} />);
+    expect(screen.getByText('400 WPM')).toBeInTheDocument();
+  });
+
+  it('should display time remaining', () => {
+    render(<ProgressBar {...defaultProps} timeRemaining="2:30" />);
+    expect(screen.getByText('2:30')).toBeInTheDocument();
+  });
+
+  it('should hide stats in minimal mode', () => {
+    render(<ProgressBar {...defaultProps} minimal={true} />);
+    expect(screen.queryByText('50 / 100')).not.toBeInTheDocument();
+    expect(screen.queryByText('300 WPM')).not.toBeInTheDocument();
+  });
+});
