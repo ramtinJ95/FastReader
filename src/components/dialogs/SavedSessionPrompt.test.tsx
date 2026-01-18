@@ -117,4 +117,50 @@ describe('SavedSessionPrompt', () => {
     fireEvent.click(dialog!);
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  // Edge case tests
+  it('should handle totalWords of 0 without NaN', () => {
+    const props = {
+      ...defaultProps,
+      summary: {
+        currentWordIndex: 0,
+        totalWords: 0,
+        savedAt: Date.now() - 3600000,
+      },
+    };
+    render(<SavedSessionPrompt {...props} />);
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText('0 / 0 words')).toBeInTheDocument();
+  });
+
+  it('should display date for sessions older than a week', () => {
+    const props = {
+      ...defaultProps,
+      summary: {
+        currentWordIndex: 25,
+        totalWords: 100,
+        savedAt: Date.now() - 604800000 * 2, // 2 weeks ago
+      },
+    };
+    render(<SavedSessionPrompt {...props} />);
+    // Should show a date format, not relative time
+    const sessionInfo = screen.getByText(/you have a saved session from/i);
+    expect(sessionInfo).toBeInTheDocument();
+    // Verify it doesn't contain "ago" since it's too old for relative time
+    expect(sessionInfo.textContent).not.toContain('weeks ago');
+  });
+
+  it('should handle currentWordIndex at end of document', () => {
+    const props = {
+      ...defaultProps,
+      summary: {
+        currentWordIndex: 100,
+        totalWords: 100,
+        savedAt: Date.now() - 3600000,
+      },
+    };
+    render(<SavedSessionPrompt {...props} />);
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('100 / 100 words')).toBeInTheDocument();
+  });
 });
