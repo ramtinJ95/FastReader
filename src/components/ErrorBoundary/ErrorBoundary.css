@@ -18,3 +18,8 @@
   margin-bottom: var(--spacing-lg);
   max-width: 400px;
 }
+
+.error-boundary .error-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
