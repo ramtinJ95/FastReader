@@ -51,10 +51,9 @@ describe('Text Input Functionality', () => {
     expect(onApply).toHaveBeenCalledWith('Hello world');
   });
 
-  it('should show error when submitting whitespace-only text', () => {
+  it('should disable submit button when text is whitespace-only', () => {
     render(<TextInput {...defaultProps} text="   " />);
 
-    // Submit button should be disabled for whitespace-only text
     const submitBtn = screen.getByRole('button', { name: /load text/i });
     expect(submitBtn).toBeDisabled();
   });
