@@ -64,6 +64,9 @@ function App() {
     settings,
   });
 
+  // Destructure stable playback methods for use in callbacks
+  const { setText: setPlaybackText, seekTo: playbackSeekTo } = playback;
+
   // Session management
   const session = useSession({
     text,
@@ -73,13 +76,13 @@ function App() {
       (loadedSession: { text: string; currentWordIndex: number; settings: SettingsType }) => {
         setText(loadedSession.text);
         setSettings(loadedSession.settings);
-        playback.setText(loadedSession.text);
+        setPlaybackText(loadedSession.text);
         // Seek to saved position after a tick
         setTimeout(() => {
-          playback.seekTo(loadedSession.currentWordIndex);
+          playbackSeekTo(loadedSession.currentWordIndex);
         }, 0);
       },
-      [playback]
+      [setPlaybackText, playbackSeekTo]
     ),
   });
 
@@ -112,9 +115,9 @@ function App() {
   const handleTextApply = useCallback(
     (newText: string) => {
       setText(newText);
-      playback.setText(newText);
+      setPlaybackText(newText);
     },
-    [playback]
+    [setPlaybackText]
   );
 
   const handleFileSelect = useCallback(
@@ -126,7 +129,7 @@ function App() {
       try {
         const extractedText = await parseFile(file);
         setText(extractedText);
-        playback.setText(extractedText);
+        setPlaybackText(extractedText);
         setShowTextInput(false);
       } catch (error) {
         console.error('Failed to parse file:', error);
@@ -138,7 +141,7 @@ function App() {
         setLoadingMessage('');
       }
     },
-    [playback]
+    [setPlaybackText]
   );
 
   const isFocusMode = playback.isPlaying || playback.isPaused;
