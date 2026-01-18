@@ -169,42 +169,10 @@
   margin-top: var(--spacing-md);
 }
 
-/* Button Styles */
-.btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
+/* TextInput-specific button size overrides */
+.text-input-content .btn {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  font-weight: 500;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.btn.primary {
-  background: var(--color-accent);
-  color: var(--color-text);
-}
-
-.btn.primary:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.btn.secondary {
-  background: var(--color-bg-button);
-  color: var(--color-text);
-}
-
-.btn.secondary:hover:not(:disabled) {
-  background: var(--color-bg-button-hover);
 }
 
 /* Mobile */
