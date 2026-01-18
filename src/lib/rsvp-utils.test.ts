@@ -252,3 +252,101 @@ describe('extractWordFrame', () => {
     });
   });
 });
+
+// Edge Cases (Phase 9 coverage improvements)
+describe('Edge Cases', () => {
+  describe('parseText', () => {
+    it('should handle text with only whitespace', () => {
+      expect(parseText('   \n\t   ')).toEqual([]);
+    });
+
+    it('should handle very long words', () => {
+      const longWord = 'a'.repeat(100);
+      expect(parseText(longWord)).toEqual([longWord]);
+    });
+  });
+
+  describe('getORPIndex', () => {
+    it('should handle words with only punctuation', () => {
+      expect(getORPIndex('...')).toBe(0);
+    });
+
+    it('should handle very long words (13+ letters)', () => {
+      // 13 letters: floor(log2(12)) + 1 = floor(3.58) + 1 = 4
+      expect(getORPIndex('abcdefghijklm')).toBe(4);
+      // 20 letters: floor(log2(19)) + 1 = floor(4.25) + 1 = 5
+      expect(getORPIndex('abcdefghijklmnopqrst')).toBe(5);
+      // 50 letters: floor(log2(49)) + 1 = floor(5.61) + 1 = 6
+      const longWord = 'a'.repeat(50);
+      expect(getORPIndex(longWord)).toBe(6);
+    });
+
+    it('should handle mixed Unicode with emoji', () => {
+      // 'hello' + emoji: 5 letters, ORP index 1
+      // Emoji is not a letter so doesn't count toward ORP
+      expect(getORPIndex('hello😀')).toBe(1);
+    });
+  });
+
+  describe('getActualORPIndex', () => {
+    it('should return fallback when no letters match ORP position', () => {
+      // Word with fewer letters than the calculated ORP would suggest
+      // '...' has 0 letters, ORP index 0, loop doesn't find any letters
+      // Falls back to min(0, 2) = 0
+      expect(getActualORPIndex('...')).toBe(0);
+    });
+
+    it('should handle word with only non-letter characters', () => {
+      // '123' has no letters, ORP index 0, loop doesn't find letters
+      // Falls back to min(0, 2) = 0
+      expect(getActualORPIndex('123')).toBe(0);
+    });
+
+    it('should hit fallback for words where letter count is less than ORP index', () => {
+      // To test line 59, we need a word where the loop finishes without finding
+      // the ORP position. This happens when we have leading non-letters followed
+      // by fewer letters than expected.
+      // Example: "...ab" has 2 letters, ORP index would be 0 for 2 letters
+      // So the loop should find it. Let's use a case that triggers line 59.
+      // Actually the fallback path (line 59) is reached when letterCount never
+      // equals orpIndex. This happens with all non-letter words.
+      expect(getActualORPIndex('!!!')).toBe(0); // min(0, 2) = 0
+    });
+  });
+
+  describe('getWordDelay', () => {
+    it('should handle extremely high WPM', () => {
+      const delay = getWordDelay('hello', 10000, false);
+      expect(delay).toBe(6); // 60000 / 10000 = 6ms
+    });
+
+    it('should handle very long words with multiplier', () => {
+      const longWord = 'a'.repeat(50);
+      const delay = getWordDelay(longWord, 300, false, 2, 10);
+      // base = 200ms, 50 - 12 = 38 extra chars, 38 * 10% = 380% increase
+      // 200 * (1 + 3.8) = 200 * 4.8 = 960
+      expect(delay).toBeCloseTo(960, 5);
+    });
+
+    it('should handle 12-char word boundary with multiplier', () => {
+      const word12 = 'a'.repeat(12);
+      // Exactly 12 chars: 0 extra chars, no multiplier applied
+      expect(getWordDelay(word12, 300, false, 2, 10)).toBe(200);
+    });
+  });
+
+  describe('formatTimeRemaining', () => {
+    it('should handle large word counts', () => {
+      // 100000 words at 300 WPM = 333.33 minutes
+      // 333.33 * 60 = 20000 seconds, ceil gives 20000
+      // 20000 / 60 = 333 minutes, 20000 % 60 = 20 seconds
+      expect(formatTimeRemaining(100000, 300)).toMatch(/\d+:\d{2}/);
+      expect(formatTimeRemaining(100000, 300)).toBe('333:20');
+    });
+
+    it('should handle very small remainders', () => {
+      // 1 word at 300 WPM = 0.2 seconds, ceil to 1 second
+      expect(formatTimeRemaining(1, 300)).toBe('0:01');
+    });
+  });
+});
