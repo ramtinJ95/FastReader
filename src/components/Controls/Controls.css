@@ -1,10 +1,14 @@
-/* Controls component styles - to be implemented in Task 2 */
 .controls {
   display: flex;
   justify-content: center;
   gap: 1rem;
 }
 
+.controls.minimal {
+  gap: 0.5rem;
+}
+
+/* Base button styles */
 .control-btn {
   display: flex;
   align-items: center;
@@ -16,8 +20,8 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all var(--transition-normal);
   color: var(--color-text);
-  background: var(--color-bg-button);
 }
 
 .control-btn svg {
@@ -26,7 +30,73 @@
   flex-shrink: 0;
 }
 
+/* Minimal mode - circular buttons */
+.controls.minimal .control-btn {
+  padding: 0.5rem;
+  border-radius: var(--radius-full);
+  width: 40px;
+  height: 40px;
+}
+
+.controls.minimal .control-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Disabled state */
 .control-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* Play button (and Resume) */
+.control-btn.play {
+  background: var(--color-accent);
+}
+
+.control-btn.play:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+/* Pause button */
+.control-btn.pause {
+  background: var(--color-pause);
+  color: #000;
+}
+
+.control-btn.pause:hover:not(:disabled) {
+  background: var(--color-pause-hover);
+}
+
+/* Stop and Restart buttons */
+.control-btn.stop,
+.control-btn.restart {
+  background: var(--color-bg-button);
+}
+
+.control-btn.stop:hover:not(:disabled),
+.control-btn.restart:hover:not(:disabled) {
+  background: var(--color-bg-button-hover);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .controls {
+    gap: 0.75rem;
+  }
+
+  .control-btn {
+    padding: 0.875rem 1.25rem;
+    min-height: 48px;
+  }
+
+  /* Hide text labels on mobile */
+  .control-btn span {
+    display: none;
+  }
+
+  .controls.minimal .control-btn {
+    width: 48px;
+    height: 48px;
+  }
 }
