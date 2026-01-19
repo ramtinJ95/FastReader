@@ -2134,7 +2134,7 @@ Run through this checklist to verify Phase 2 is complete:
 - [x] MCQQuestion allows selection and submission
 - [x] QuizFeedback shows correct/incorrect state
 - [x] QuizFeedback shows FSRS rating buttons
-- [ ] GeneratingOverlay displays with spinner
+- [x] GeneratingOverlay displays with spinner
 - [ ] MilestonePrompt shows at correct position
 
 ### Hook
