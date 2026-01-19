@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { usePlayback } from './hooks/usePlayback';
 import { useSession } from './hooks/useSession';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useComprehension } from './hooks/useComprehension';
 import { formatTimeRemaining, extractWordFrame } from './lib/rsvp-utils';
 import { parseFile } from './lib/file-parsers';
 import { DEFAULT_SETTINGS, type Settings as SettingsType } from './types';
@@ -69,6 +70,9 @@ function AppContent() {
   const { setText: setPlaybackText, seekTo: playbackSeekTo } = playback;
 
   // Session management
+  // Comprehension feature (quiz/questions)
+  const comprehension = useComprehension();
+
   const session = useSession({
     text,
     currentWordIndex: playback.currentWordIndex,
@@ -253,6 +257,12 @@ function AppContent() {
         <header className="header">
           <h1>FastReader</h1>
           <div className="header-actions">
+            <span
+              className={`backend-status ${comprehension.isConnected ? 'connected' : 'disconnected'}`}
+              title={comprehension.isConnected ? 'Backend connected' : 'Backend disconnected'}
+            >
+              {comprehension.isConnected ? '●' : '○'}
+            </span>
             <button
               className="icon-btn"
               onClick={() => setShowTextInput(true)}
