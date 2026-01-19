@@ -142,3 +142,20 @@ export interface UpdateSessionInput {
   is_active?: boolean;
   completed_at?: string;
 }
+
+// FSRS rating descriptions for UI
+export const FSRS_RATINGS = {
+  1: { label: 'Again', description: 'Forgot completely' },
+  2: { label: 'Hard', description: 'Struggled to recall' },
+  3: { label: 'Good', description: 'Recalled with effort' },
+  4: { label: 'Easy', description: 'Instant recall' },
+} as const;
+
+// Quiz state for managing active quiz session
+export interface QuizState {
+  questions: Question[];
+  currentIndex: number;
+  answers: Map<string, { answer: string; isCorrect: boolean; rating?: number }>;
+  isGenerating: boolean;
+  error?: string;
+}
