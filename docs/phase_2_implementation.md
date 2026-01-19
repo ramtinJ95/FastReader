@@ -2147,14 +2147,14 @@ Run through this checklist to verify Phase 2 is complete:
 ### Integration
 
 - [x] Backend status indicator in header
-- [ ] Quiz button in progress bar (when connected)
+- [x] Quiz button in progress bar (when connected)
 - [ ] Milestone prompt appears (simulated)
 - [ ] Quiz modal flow works end-to-end
 
 ### Tests
 
-- [ ] All unit tests pass (`npm test`)
-- [ ] Build succeeds (`npm run build`)
+- [x] All unit tests pass (`npm test`)
+- [x] Build succeeds (`npm run build`)
 - [ ] App runs without console errors (`npm run dev`)
 
 ---
