@@ -71,8 +71,7 @@ describe('Comprehension Integration', () => {
     expect(screen.getByText('FastReader')).toBeInTheDocument();
   });
 
-  it('shows quiz button when connected and session active', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  it('does not show quiz button when no session is active', async () => {
     render(<App />);
 
     // Wait for connection check to complete
@@ -80,34 +79,10 @@ describe('Comprehension Integration', () => {
       expect(screen.getByTitle(/backend/i)).toBeInTheDocument();
     });
 
-    // Load new text to trigger document sync
-    // Click the header button (with aria-label)
-    await user.click(screen.getByRole('button', { name: /load text/i }));
-
-    const textarea = screen.getByPlaceholderText(/paste your text here/i);
-    await user.clear(textarea);
-    await user.type(textarea, 'Test content for quiz generation');
-
-    // Get the submit button inside the dialog (has type="submit")
-    const dialog = screen.getByRole('dialog');
-    const submitButton = dialog.querySelector('button[type="submit"]');
-    expect(submitButton).not.toBeNull();
-    await user.click(submitButton!);
-
-    // Wait for dialog to close
-    await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'Load Text' })).not.toBeInTheDocument();
-    });
-
-    // Quiz button should now be visible in the progress bar area
-    await waitFor(
-      () => {
-        const quizButton = screen.queryByRole('button', { name: /quiz/i });
-        // Button may or may not appear depending on connection state
-        expect(quizButton === null || quizButton !== null).toBe(true);
-      },
-      { timeout: 1000 }
-    );
+    // Quiz button should NOT be visible since no session has been created
+    // (syncDocument would need to be called to create a session)
+    const quizButton = screen.queryByRole('button', { name: /quiz/i });
+    expect(quizButton).not.toBeInTheDocument();
   });
 
   it('backend status indicator shows correct state', async () => {
