@@ -254,10 +254,10 @@ chmod +x test-connection.sh
 
 ### 4.4 Deliverables
 
-- [ ] PocketBase binary downloaded and executable
-- [ ] `start.sh` script created
-- [ ] Admin account created at `http://127.0.0.1:8090/_/`
-- [ ] Health check passes
+- [x] PocketBase binary downloaded and executable
+- [x] `start.sh` script created
+- [ ] Admin account created at `http://127.0.0.1:8090/_/` (manual step - visit URL to create)
+- [x] Health check passes
 
 ---
 
