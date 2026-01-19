@@ -115,7 +115,6 @@ export function ComprehensionProvider({ children }: ComprehensionProviderProps) 
     // Subscribe to questions
     unsubscribeQuestionsRef.current = subscribeToQuestions(documentId, (e) => {
       if (e.action === 'create') {
-        console.log('SSE: New question received', e.record.id);
         setQuestions(prev => [e.record, ...prev]);
       } else if (e.action === 'update') {
         setQuestions(prev => prev.map(q => q.id === e.record.id ? e.record : q));
@@ -127,7 +126,6 @@ export function ComprehensionProvider({ children }: ComprehensionProviderProps) 
     // Subscribe to milestones
     unsubscribeMilestonesRef.current = subscribeToMilestones(sessionId, (e) => {
       if (e.action === 'create') {
-        console.log('SSE: New milestone reached', e.record.milestone_percent);
         setMilestones(prev => [...prev, e.record]);
 
         // Set as pending if not yet prompted
