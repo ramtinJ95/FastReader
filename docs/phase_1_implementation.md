@@ -777,10 +777,10 @@ chmod +x test-fsrs.sh
 
 ### 6.5 Deliverables
 
-- [ ] `pb_hooks/fsrs.pb.js` created with FSRS algorithm
-- [ ] PocketBase restarted to load hook
-- [ ] Test script verifies FSRS fields are calculated
-- [ ] Console shows FSRS calculation logs
+- [x] `pb_hooks/fsrs.pb.js` created with FSRS algorithm
+- [x] PocketBase restarted to load hook
+- [x] Test script verifies FSRS fields are calculated
+- [x] Console shows FSRS calculation logs
 
 ---
 
