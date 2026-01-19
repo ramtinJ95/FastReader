@@ -24,7 +24,6 @@ import {
 } from '../services/pocketbase';
 import { getAICliService } from '../services/aiCli';
 import type {
-  Question,
   QuizState,
   SessionMilestone,
   ConnectionStatus,
@@ -81,8 +80,12 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
 
   const unsubscribersRef = useRef<(() => void)[]>([]);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
   const generationTimeoutRef = useRef<number | null>(null);
+
+  // Update optionsRef in an effect to avoid accessing refs during render
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const isConnected = connectionStatus === 'connected';
 

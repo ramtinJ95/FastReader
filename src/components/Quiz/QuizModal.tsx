@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Question, QuizState } from '../../types';
+import type { QuizState } from '../../types';
 import { MCQQuestion } from './MCQQuestion';
 import { QuizFeedback } from './QuizFeedback';
 import './Quiz.css';
