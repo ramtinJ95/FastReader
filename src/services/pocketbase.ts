@@ -102,6 +102,9 @@ export async function deleteDocument(id: string): Promise<void> {
 // Session Operations
 // ============================================
 
+// Default WPM matches DEFAULT_SETTINGS.wordsPerMinute in types/index.ts
+const DEFAULT_WPM = 300;
+
 /**
  * Create a new reading session
  */
@@ -111,6 +114,7 @@ export async function createSession(input: CreateSessionInput): Promise<ReadingS
     ...input,
     current_word_index: 0,
     progress_percent: 0,
+    wpm_setting: input.wpm_setting ?? DEFAULT_WPM,
     is_active: true,
   });
 }
