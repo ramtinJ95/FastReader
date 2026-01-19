@@ -262,6 +262,7 @@ export async function markMilestoneCompleted(milestoneId: string): Promise<void>
 // ============================================
 
 type SubscriptionCallback<T> = (data: { action: string; record: T }) => void;
+type SubscriptionErrorCallback = (error: Error) => void;
 type UnsubscribeFunction = () => void;
 
 /**
@@ -269,18 +270,29 @@ type UnsubscribeFunction = () => void;
  */
 export function subscribeToQuestions(
   documentId: string,
-  callback: SubscriptionCallback<Question>
+  callback: SubscriptionCallback<Question>,
+  onError?: SubscriptionErrorCallback
 ): UnsubscribeFunction {
   const pb = getPocketBase();
 
   pb.collection('questions').subscribe<Question>('*', (e) => {
-    if (e.record.document === documentId) {
-      callback({ action: e.action, record: e.record });
+    try {
+      if (e.record.document === documentId) {
+        callback({ action: e.action, record: e.record });
+      }
+    } catch (error) {
+      console.error('Error in questions subscription callback:', error);
+      onError?.(error instanceof Error ? error : new Error(String(error)));
     }
+  }).catch((error) => {
+    console.error('Failed to subscribe to questions:', error);
+    onError?.(error instanceof Error ? error : new Error(String(error)));
   });
 
   return () => {
-    pb.collection('questions').unsubscribe('*');
+    pb.collection('questions').unsubscribe('*').catch((error) => {
+      console.error('Failed to unsubscribe from questions:', error);
+    });
   };
 }
 
@@ -289,18 +301,29 @@ export function subscribeToQuestions(
  */
 export function subscribeToMilestones(
   sessionId: string,
-  callback: SubscriptionCallback<SessionMilestone>
+  callback: SubscriptionCallback<SessionMilestone>,
+  onError?: SubscriptionErrorCallback
 ): UnsubscribeFunction {
   const pb = getPocketBase();
 
   pb.collection('session_milestones').subscribe<SessionMilestone>('*', (e) => {
-    if (e.record.session === sessionId) {
-      callback({ action: e.action, record: e.record });
+    try {
+      if (e.record.session === sessionId) {
+        callback({ action: e.action, record: e.record });
+      }
+    } catch (error) {
+      console.error('Error in milestones subscription callback:', error);
+      onError?.(error instanceof Error ? error : new Error(String(error)));
     }
+  }).catch((error) => {
+    console.error('Failed to subscribe to milestones:', error);
+    onError?.(error instanceof Error ? error : new Error(String(error)));
   });
 
   return () => {
-    pb.collection('session_milestones').unsubscribe('*');
+    pb.collection('session_milestones').unsubscribe('*').catch((error) => {
+      console.error('Failed to unsubscribe from milestones:', error);
+    });
   };
 }
 
@@ -309,6 +332,10 @@ export function subscribeToMilestones(
  */
 export function unsubscribeAll(): void {
   const pb = getPocketBase();
-  pb.collection('questions').unsubscribe();
-  pb.collection('session_milestones').unsubscribe();
+  pb.collection('questions').unsubscribe().catch((error) => {
+    console.error('Failed to unsubscribe from questions:', error);
+  });
+  pb.collection('session_milestones').unsubscribe().catch((error) => {
+    console.error('Failed to unsubscribe from milestones:', error);
+  });
 }

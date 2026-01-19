@@ -112,30 +112,44 @@ export function ComprehensionProvider({ children }: ComprehensionProviderProps) 
     unsubscribeQuestionsRef.current?.();
     unsubscribeMilestonesRef.current?.();
 
+    // Error handler for subscriptions
+    const handleSubscriptionError = (error: Error) => {
+      console.error('Subscription error:', error);
+      setConnectionStatus('error');
+    };
+
     // Subscribe to questions
-    unsubscribeQuestionsRef.current = subscribeToQuestions(documentId, (e) => {
-      if (e.action === 'create') {
-        setQuestions(prev => [e.record, ...prev]);
-      } else if (e.action === 'update') {
-        setQuestions(prev => prev.map(q => q.id === e.record.id ? e.record : q));
-      } else if (e.action === 'delete') {
-        setQuestions(prev => prev.filter(q => q.id !== e.record.id));
-      }
-    });
+    unsubscribeQuestionsRef.current = subscribeToQuestions(
+      documentId,
+      (e) => {
+        if (e.action === 'create') {
+          setQuestions(prev => [e.record, ...prev]);
+        } else if (e.action === 'update') {
+          setQuestions(prev => prev.map(q => q.id === e.record.id ? e.record : q));
+        } else if (e.action === 'delete') {
+          setQuestions(prev => prev.filter(q => q.id !== e.record.id));
+        }
+      },
+      handleSubscriptionError
+    );
 
     // Subscribe to milestones
-    unsubscribeMilestonesRef.current = subscribeToMilestones(sessionId, (e) => {
-      if (e.action === 'create') {
-        setMilestones(prev => [...prev, e.record]);
+    unsubscribeMilestonesRef.current = subscribeToMilestones(
+      sessionId,
+      (e) => {
+        if (e.action === 'create') {
+          setMilestones(prev => [...prev, e.record]);
 
-        // Set as pending if not yet prompted
-        if (!e.record.quiz_prompted && !e.record.quiz_completed) {
-          setPendingMilestone(e.record.milestone_percent);
+          // Set as pending if not yet prompted
+          if (!e.record.quiz_prompted && !e.record.quiz_completed) {
+            setPendingMilestone(e.record.milestone_percent);
+          }
+        } else if (e.action === 'update') {
+          setMilestones(prev => prev.map(m => m.id === e.record.id ? e.record : m));
         }
-      } else if (e.action === 'update') {
-        setMilestones(prev => prev.map(m => m.id === e.record.id ? e.record : m));
-      }
-    });
+      },
+      handleSubscriptionError
+    );
   }, []);
 
   // ----------------------------------------
