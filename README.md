@@ -12,6 +12,8 @@ A fast, distraction-free speed reading app using RSVP (Rapid Serial Visual Prese
 - **Keyboard Shortcuts**: Full keyboard navigation
 - **Mobile Friendly**: Touch controls for mobile devices
 - **Dark Theme**: Easy on the eyes for extended reading
+- **Comprehension Quizzes** (optional): AI-generated questions at reading milestones (25%, 50%, 75%, 100%)
+- **Spaced Repetition**: FSRS-based review scheduling for long-term retention
 
 ## Running Locally
 
@@ -39,6 +41,25 @@ A fast, distraction-free speed reading app using RSVP (Rapid Serial Visual Prese
    ```
 
 4. Open http://localhost:5173 in your browser
+
+### Backend Setup (Optional)
+
+The comprehension features require a PocketBase backend. Skip this if you only want the core RSVP reader.
+
+1. Copy environment config:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Start PocketBase:
+   ```bash
+   cd fastreader-backend
+   ./start.sh
+   ```
+
+3. Access the admin UI at http://127.0.0.1:8090/_/ to create an admin account on first run
+
+The frontend will show a connection indicator (●/○) in the header when the backend is available.
 
 ### Production Build
 
@@ -80,6 +101,7 @@ The production build outputs to `dist/` and can be served by any static file hos
 - TypeScript
 - Vite
 - PDF.js for PDF parsing
+- PocketBase for backend (optional)
 - Vitest for testing
 - Playwright for E2E tests
 
@@ -106,11 +128,20 @@ npm run format
 
 ```
 src/
-├── components/       # React components
-├── hooks/           # Custom React hooks
+├── components/       # React components (RSVPDisplay, Quiz/, dialogs/)
+├── hooks/           # Custom React hooks (usePlayback, useComprehension)
+├── services/        # API clients (pocketbase.ts, aiCli.ts)
 ├── lib/             # Utility functions
 ├── types/           # TypeScript types
 └── __tests__/       # Integration tests
+
+fastreader-backend/  # PocketBase backend (optional)
+├── pb_hooks/        # JSVM hooks (FSRS, milestones)
+├── pb_migrations/   # Collection schemas
+└── start.sh         # Startup script
+
+fastreader-mcp/      # MCP server for AI assistants
+└── src/             # Tool definitions for question generation
 ```
 
 ## Contributing
