@@ -9,6 +9,24 @@
  * 3. questions - Quiz questions generated from documents
  * 4. question_attempts - User answers and FSRS scheduling data
  * 5. session_milestones - Progress milestones (25%, 50%, 75%, 100%)
+ *
+ * SECURITY NOTE: API Rules Strategy
+ * ---------------------------------
+ * All collections use empty string rules (listRule: "", viewRule: "", etc.)
+ * which means PUBLIC ACCESS without authentication.
+ *
+ * This is INTENTIONAL for Phase 1 because:
+ * - FastReader runs locally on user's machine (127.0.0.1)
+ * - No multi-user authentication is needed for personal use
+ * - Simplifies development and testing
+ *
+ * For production/cloud deployment, you MUST update these rules to require
+ * authentication. Example secure rules:
+ *   listRule: "@request.auth.id != ''"
+ *   viewRule: "@request.auth.id != ''"
+ *   createRule: "@request.auth.id != ''"
+ *   updateRule: "@request.auth.id != ''"
+ *   deleteRule: "@request.auth.id != ''"
  */
 
 migrate((app) => {
