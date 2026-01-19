@@ -5,3 +5,8 @@ export {
   type KeyboardShortcutHandlers,
   type UseKeyboardShortcutsOptions,
 } from './useKeyboardShortcuts';
+export {
+  useComprehension,
+  type UseComprehensionOptions,
+  type UseComprehensionReturn,
+} from './useComprehension';

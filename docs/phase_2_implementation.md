@@ -2139,10 +2139,10 @@ Run through this checklist to verify Phase 2 is complete:
 
 ### Hook
 
-- [ ] useComprehension connects to PocketBase
-- [ ] useComprehension syncs documents
-- [ ] useComprehension handles quiz state
-- [ ] useComprehension records answers
+- [x] useComprehension connects to PocketBase
+- [x] useComprehension syncs documents
+- [x] useComprehension handles quiz state
+- [x] useComprehension records answers
 
 ### Integration
 
