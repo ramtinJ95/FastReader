@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { RSVPDisplay } from './components/RSVPDisplay';
 import { Controls } from './components/Controls';
 import { ProgressBar } from './components/ProgressBar';
@@ -90,6 +90,34 @@ function AppContent() {
       [setPlaybackText, playbackSeekTo]
     ),
   });
+
+  // Sync progress to PocketBase during playback (throttled to every 5% or 2 seconds)
+  const lastProgressSyncRef = useRef<{ percent: number; time: number }>({
+    percent: 0,
+    time: 0,
+  });
+  useEffect(() => {
+    if (!comprehension.sessionId || !playback.isPlaying) return;
+
+    const currentPercent = Math.floor(playback.progress * 100);
+    const now = Date.now();
+    const lastSync = lastProgressSyncRef.current;
+
+    // Sync if: moved 5% or more, OR 2+ seconds elapsed (but at least 1% moved)
+    const percentDiff = currentPercent - lastSync.percent;
+    const timeDiff = now - lastSync.time;
+
+    if (percentDiff >= 5 || (timeDiff >= 2000 && percentDiff >= 1)) {
+      comprehension.updateProgress(playback.currentWordIndex, playback.words.length);
+      lastProgressSyncRef.current = { percent: currentPercent, time: now };
+    }
+  }, [
+    playback.currentWordIndex,
+    playback.words.length,
+    playback.progress,
+    playback.isPlaying,
+    comprehension,
+  ]);
 
   // Handle save
   const handleSave = useCallback(() => {
@@ -187,8 +215,13 @@ function AppContent() {
     (newText: string) => {
       setText(newText);
       setPlaybackText(newText);
+      // Sync to PocketBase for comprehension features
+      if (comprehension.isConnected) {
+        const words = newText.split(/\s+/).filter((w) => w.length > 0);
+        comprehension.syncDocument('Reading Session', newText, words.length);
+      }
     },
-    [setPlaybackText]
+    [setPlaybackText, comprehension]
   );
 
   const handleFileSelect = useCallback(
@@ -202,6 +235,11 @@ function AppContent() {
         setText(extractedText);
         setPlaybackText(extractedText);
         setShowTextInput(false);
+        // Sync to PocketBase for comprehension features
+        if (comprehension.isConnected) {
+          const words = extractedText.split(/\s+/).filter((w) => w.length > 0);
+          comprehension.syncDocument(file.name, extractedText, words.length);
+        }
       } catch (error) {
         console.error('Failed to parse file:', error);
         setFileError(error instanceof Error ? error.message : 'Failed to parse file');
@@ -210,7 +248,7 @@ function AppContent() {
         setLoadingMessage('');
       }
     },
-    [setPlaybackText]
+    [setPlaybackText, comprehension]
   );
 
   // Touch control handlers
