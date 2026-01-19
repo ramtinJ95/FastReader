@@ -2793,9 +2793,9 @@ export function useDocumentPersistence(
 
 ### 11.3 Deliverables
 
-- [ ] `src/hooks/useDocumentPersistence.ts` created
-- [ ] Hook provides saveDocument and syncProgress functions
-- [ ] Progress syncs are debounced to avoid excessive API calls
+- [x] `src/hooks/useDocumentPersistence.ts` created
+- [x] Hook provides saveDocument and syncProgress functions
+- [x] Progress syncs are debounced to avoid excessive API calls
 
 ---
 
