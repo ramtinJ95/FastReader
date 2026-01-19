@@ -1,0 +1,9 @@
+# PocketBase binary (platform-specific, users should download their own)
+pocketbase
+pocketbase.exe
+
+# Generated files from PocketBase
+pb_data/
+pocketbase.zip
+CHANGELOG.md
+LICENSE.md
