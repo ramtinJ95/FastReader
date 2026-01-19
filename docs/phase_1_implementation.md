@@ -2655,9 +2655,9 @@ export { ConnectionStatus } from './ConnectionStatus';
 
 ### 10.4 Deliverables
 
-- [ ] `src/contexts/ComprehensionContext.tsx` created
-- [ ] `src/components/ConnectionStatus/` created
-- [ ] SSE subscriptions implemented for questions and milestones
+- [x] `src/contexts/ComprehensionContext.tsx` created
+- [x] `src/components/ConnectionStatus/` created
+- [x] SSE subscriptions implemented for questions and milestones
 
 ---
 
