@@ -8,6 +8,7 @@ import { JumpToDialog, SavedSessionPrompt } from './components/dialogs';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 import { TouchControls } from './components/TouchControls';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { QuizModal, GeneratingOverlay, MilestonePrompt } from './components/Quiz';
 import { usePlayback } from './hooks/usePlayback';
 import { useSession } from './hooks/useSession';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -391,6 +392,29 @@ function AppContent() {
         onStartFresh={session.startFresh}
         onClose={session.dismissPrompt}
       />
+
+      {/* Quiz Components */}
+      {comprehension.pendingMilestone && !comprehension.quiz && !comprehension.isGenerating && (
+        <MilestonePrompt
+          milestonePercent={comprehension.pendingMilestone.milestone_percent}
+          onGenerateQuiz={() => comprehension.generateQuiz()}
+          onDismiss={comprehension.dismissMilestone}
+        />
+      )}
+
+      {comprehension.isGenerating && (
+        <GeneratingOverlay onCancel={() => {}} />
+      )}
+
+      {comprehension.quiz && !comprehension.isGenerating && (
+        <QuizModal
+          quiz={comprehension.quiz}
+          onAnswer={comprehension.answerQuestion}
+          onRating={comprehension.rateQuestion}
+          onNext={comprehension.nextQuestion}
+          onClose={comprehension.closeQuiz}
+        />
+      )}
     </div>
   );
 }

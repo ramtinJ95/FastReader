@@ -2148,7 +2148,7 @@ Run through this checklist to verify Phase 2 is complete:
 
 - [x] Backend status indicator in header
 - [x] Quiz button in progress bar (when connected)
-- [ ] Milestone prompt appears (simulated)
+- [x] Milestone prompt appears (simulated)
 - [x] Quiz modal flow works end-to-end
 
 ### Tests
