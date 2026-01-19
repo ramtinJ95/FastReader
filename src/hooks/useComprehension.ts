@@ -82,6 +82,7 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
   const unsubscribersRef = useRef<(() => void)[]>([]);
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const generationTimeoutRef = useRef<number | null>(null);
 
   const isConnected = connectionStatus === 'connected';
 
@@ -113,6 +114,11 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
       documentId,
       ({ action, record }) => {
         if (action === 'create') {
+          // Clear the generation timeout since we received a question
+          if (generationTimeoutRef.current) {
+            clearTimeout(generationTimeoutRef.current);
+            generationTimeoutRef.current = null;
+          }
           setQuiz((prev) => {
             if (!prev) {
               return {
@@ -165,6 +171,9 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (generationTimeoutRef.current) {
+        clearTimeout(generationTimeoutRef.current);
+      }
       unsubscribeAll();
     };
   }, []);
@@ -257,7 +266,12 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
 
         // Questions will arrive via SSE subscription
         // Set a timeout in case generation fails silently
-        setTimeout(() => {
+        // Clear any existing timeout first
+        if (generationTimeoutRef.current) {
+          clearTimeout(generationTimeoutRef.current);
+        }
+        generationTimeoutRef.current = window.setTimeout(() => {
+          generationTimeoutRef.current = null;
           setIsGenerating((current) => {
             if (current) {
               setGenerationError(
