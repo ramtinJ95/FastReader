@@ -2130,10 +2130,10 @@ Run through this checklist to verify Phase 2 is complete:
 
 ### Components
 
-- [ ] QuizModal renders questions correctly
-- [ ] MCQQuestion allows selection and submission
-- [ ] QuizFeedback shows correct/incorrect state
-- [ ] QuizFeedback shows FSRS rating buttons
+- [x] QuizModal renders questions correctly
+- [x] MCQQuestion allows selection and submission
+- [x] QuizFeedback shows correct/incorrect state
+- [x] QuizFeedback shows FSRS rating buttons
 - [ ] GeneratingOverlay displays with spinner
 - [ ] MilestonePrompt shows at correct position
 
