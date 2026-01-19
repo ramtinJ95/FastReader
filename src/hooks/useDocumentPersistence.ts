@@ -37,8 +37,9 @@ export function useDocumentPersistence(
     updateProgress,
   } = useComprehension();
 
-  const lastSyncRef = useRef<number>(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingProgressRef = useRef<{ wordIndex: number; percent: number } | null>(null);
+  const isMountedRef = useRef(true);
 
   const isBackendAvailable = connectionStatus === 'connected';
 
@@ -86,27 +87,48 @@ export function useDocumentPersistence(
     const percent = Math.round((wordIndex / totalWords) * 100);
     pendingProgressRef.current = { wordIndex, percent };
 
-    const now = Date.now();
-    if (now - lastSyncRef.current < PROGRESS_SYNC_INTERVAL) {
-      return;
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
-    lastSyncRef.current = now;
-    updateProgress(wordIndex, percent);
-    pendingProgressRef.current = null;
-  }, [isBackendAvailable, currentSession, updateProgress]);
-
-  // Sync pending progress on unmount
-  useEffect(() => {
-    return () => {
-      if (pendingProgressRef.current && currentSession) {
+    // Set new timer for trailing edge debounce
+    debounceTimerRef.current = setTimeout(() => {
+      if (pendingProgressRef.current && isMountedRef.current) {
         updateProgress(
           pendingProgressRef.current.wordIndex,
           pendingProgressRef.current.percent
         );
+        pendingProgressRef.current = null;
+      }
+      debounceTimerRef.current = null;
+    }, PROGRESS_SYNC_INTERVAL);
+  }, [isBackendAvailable, currentSession, updateProgress]);
+
+  // Track mount state and flush pending progress on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      // Clear any pending timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+
+      // Flush pending progress immediately on unmount
+      if (pendingProgressRef.current) {
+        const { wordIndex, percent } = pendingProgressRef.current;
+        pendingProgressRef.current = null;
+        // Use a synchronous-like approach by calling updateProgress directly
+        // Note: This may not complete if the component unmounts during navigation,
+        // but it's the best effort we can make without a more complex solution
+        updateProgress(wordIndex, percent);
       }
     };
-  }, [currentSession, updateProgress]);
+  }, [updateProgress]);
 
   return {
     saveDocument,
