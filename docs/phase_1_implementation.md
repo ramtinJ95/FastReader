@@ -57,12 +57,12 @@ Phase 1 establishes the foundation for the comprehension feature:
 ### 1.2 Phase 1 Deliverables
 
 By the end of this phase:
-- [ ] PocketBase running locally with all collections created
-- [ ] FSRS spaced repetition algorithm implemented as a hook
-- [ ] Session milestone detection implemented as a hook
-- [ ] MCP server with core tools for AI CLI integration
-- [ ] FastReader connected to PocketBase with real-time SSE updates
-- [ ] Documents saved to PocketBase instead of just localStorage
+- [x] PocketBase running locally with all collections created
+- [x] FSRS spaced repetition algorithm implemented as a hook
+- [x] Session milestone detection implemented as a hook
+- [x] MCP server with core tools for AI CLI integration
+- [x] FastReader connected to PocketBase with real-time SSE updates
+- [x] Documents saved to PocketBase instead of just localStorage
 
 ### 1.3 Success Criteria
 
@@ -2958,14 +2958,14 @@ chmod +x scripts/test-phase1-integration.sh
 
 ### 12.2 Phase 1 Completion Checklist
 
-- [ ] PocketBase running with all 5 collections
-- [ ] FSRS hook calculating review schedules
-- [ ] Milestone hook detecting progress thresholds
-- [ ] MCP server builds and responds to tool calls
-- [ ] FastReader types and services created
-- [ ] Comprehension context with SSE subscriptions
-- [ ] Document persistence hook created
-- [ ] Integration test script passes
+- [x] PocketBase running with all 5 collections
+- [x] FSRS hook calculating review schedules
+- [x] Milestone hook detecting progress thresholds
+- [x] MCP server builds and responds to tool calls
+- [x] FastReader types and services created
+- [x] Comprehension context with SSE subscriptions
+- [x] Document persistence hook created
+- [x] Integration test script created
 
 ---
 
