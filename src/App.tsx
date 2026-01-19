@@ -337,6 +337,8 @@ function AppContent() {
           minimal={isFocusMode}
           clickable={true}
           onSeek={playback.seekToPercent}
+          showQuizButton={comprehension.isConnected && comprehension.sessionId !== null}
+          onGenerateQuiz={() => comprehension.generateQuiz()}
         />
 
         <Controls
