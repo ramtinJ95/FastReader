@@ -66,6 +66,23 @@
   color: var(--color-accent);
 }
 
+/* Quiz generate button */
+.quiz-generate-btn {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.quiz-generate-btn:hover {
+  opacity: 0.9;
+}
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
   .stats {

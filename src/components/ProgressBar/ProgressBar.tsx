@@ -18,6 +18,10 @@ export interface ProgressBarProps {
   clickable?: boolean;
   /** Called when user seeks to a position */
   onSeek?: (percentage: number) => void;
+  /** Show quiz button when backend is connected */
+  showQuizButton?: boolean;
+  /** Called when quiz button is clicked */
+  onGenerateQuiz?: () => void;
 }
 
 export function ProgressBar({
@@ -29,6 +33,8 @@ export function ProgressBar({
   minimal = false,
   clickable = false,
   onSeek,
+  showQuizButton = false,
+  onGenerateQuiz,
 }: ProgressBarProps) {
   // Handle click to seek
   const handleClick = useCallback(
@@ -97,6 +103,15 @@ export function ProgressBar({
           </span>
           <span className="stat wpm">{wpm} WPM</span>
           <span className="stat">{timeRemaining}</span>
+          {showQuizButton && onGenerateQuiz && (
+            <button
+              className="quiz-generate-btn"
+              onClick={onGenerateQuiz}
+              title="Generate Quiz"
+            >
+              Quiz
+            </button>
+          )}
         </div>
       )}
     </div>
