@@ -999,9 +999,9 @@ chmod +x test-milestones.sh
 
 ### 7.4 Deliverables
 
-- [ ] `pb_hooks/sessions.pb.js` created
-- [ ] PocketBase restarted to load hook
-- [ ] Test script verifies milestones are created at thresholds
+- [x] `pb_hooks/sessions.pb.js` created
+- [ ] PocketBase restarted to load hook (manual step - restart PocketBase to load)
+- [ ] Test script verifies milestones are created at thresholds (run after PocketBase restart)
 
 ---
 
