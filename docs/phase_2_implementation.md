@@ -2122,9 +2122,10 @@ Run through this checklist to verify Phase 2 is complete:
 
 ### Setup
 
-- [ ] PocketBase SDK installed (`npm list pocketbase`)
-- [ ] Types defined in `src/types/comprehension.ts`
-- [ ] PocketBase service created in `src/services/pocketbase.ts`
+- [x] PocketBase SDK installed (`npm list pocketbase`)
+- [x] Types defined in `src/types/comprehension.ts`
+- [x] Types exported from `src/types/index.ts`
+- [x] PocketBase service created in `src/services/pocketbase.ts`
 - [ ] AI CLI service created in `src/services/aiCli.ts`
 
 ### Components
