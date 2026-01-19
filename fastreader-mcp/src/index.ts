@@ -190,6 +190,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           timeSpentMs?: number;
         };
 
+        // Validate rating is in FSRS range (1-4)
+        if (!answerArgs.rating || answerArgs.rating < 1 || answerArgs.rating > 4) {
+          throw new Error(
+            `Invalid rating: ${answerArgs.rating}. Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).`
+          );
+        }
+
+        // Validate required fields
+        if (!answerArgs.questionId) {
+          throw new Error('questionId is required');
+        }
+        if (typeof answerArgs.isCorrect !== 'boolean') {
+          throw new Error('isCorrect must be a boolean');
+        }
+
         const attempt = await pb.collection('question_attempts').create({
           question: answerArgs.questionId,
           user_answer: answerArgs.userAnswer,
