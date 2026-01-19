@@ -402,9 +402,7 @@ function AppContent() {
         />
       )}
 
-      {comprehension.isGenerating && (
-        <GeneratingOverlay onCancel={() => {}} />
-      )}
+      {comprehension.isGenerating && <GeneratingOverlay />}
 
       {comprehension.quiz && !comprehension.isGenerating && (
         <QuizModal
