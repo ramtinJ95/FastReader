@@ -17,7 +17,7 @@ const MILESTONES = [25, 50, 75, 100];
  */
 function milestoneExists(sessionId, milestonePercent) {
     try {
-        const records = $app.dao().findRecordsByFilter(
+        const records = $app.findRecordsByFilter(
             "session_milestones",
             `session = "${sessionId}" && milestone_percent = ${milestonePercent}`,
             "",
@@ -37,7 +37,7 @@ function milestoneExists(sessionId, milestonePercent) {
  */
 function createMilestone(sessionId, milestonePercent) {
     try {
-        const collection = $app.dao().findCollectionByNameOrId("session_milestones");
+        const collection = $app.findCollectionByNameOrId("session_milestones");
         const record = new Record(collection);
 
         record.set("session", sessionId);
@@ -45,7 +45,7 @@ function createMilestone(sessionId, milestonePercent) {
         record.set("quiz_prompted", false);
         record.set("quiz_completed", false);
 
-        $app.dao().saveRecord(record);
+        $app.save(record);
 
         console.log(`Milestone: Created ${milestonePercent}% milestone for session ${sessionId}`);
     } catch (e) {
