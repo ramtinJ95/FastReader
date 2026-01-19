@@ -76,3 +76,6 @@ export interface WordFrame {
  * Playback state
  */
 export type PlaybackState = 'stopped' | 'playing' | 'paused';
+
+// Comprehension types
+export * from './comprehension';
