@@ -274,6 +274,64 @@
   }
 }
 
+/* Milestone Prompt */
+.milestone-prompt {
+  position: fixed;
+  top: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  z-index: var(--z-tooltip);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.milestone-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.milestone-badge {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.milestone-text {
+  color: var(--color-text);
+}
+
+.milestone-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn.small {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 0.85rem;
+}
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
   .quiz-modal {
@@ -286,5 +344,11 @@
 
   .rating-btn {
     flex: 1 1 45%;
+  }
+
+  .milestone-prompt {
+    flex-direction: column;
+    width: calc(100% - var(--spacing-lg) * 2);
+    text-align: center;
   }
 }
