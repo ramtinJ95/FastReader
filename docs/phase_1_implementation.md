@@ -459,10 +459,10 @@ chmod +x verify-collections.sh
 
 ### 5.5 Deliverables
 
-- [ ] All 5 collections created in PocketBase
-- [ ] All fields added with correct types
-- [ ] API rules set to public access
-- [ ] Verification script passes
+- [x] All 5 collections created in PocketBase
+- [x] All fields added with correct types
+- [x] API rules set to public access
+- [x] Verification script passes
 
 ---
 
