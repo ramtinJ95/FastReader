@@ -2135,7 +2135,7 @@ Run through this checklist to verify Phase 2 is complete:
 - [x] QuizFeedback shows correct/incorrect state
 - [x] QuizFeedback shows FSRS rating buttons
 - [x] GeneratingOverlay displays with spinner
-- [ ] MilestonePrompt shows at correct position
+- [x] MilestonePrompt shows at correct position
 
 ### Hook
 
