@@ -329,6 +329,7 @@ export function ComprehensionProvider({ children }: ComprehensionProviderProps) 
 // Hook
 // ============================================
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useComprehension(): ComprehensionContextType {
   const context = useContext(ComprehensionContext);
 
