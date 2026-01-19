@@ -28,6 +28,11 @@ plans/
 ralph-logs/
 ralph-loop.txt
 
+# Environment files (use .env.example as template)
+.env
+.env.local
+.env.*.local
+
 # Test outputs
 coverage/
 playwright-report/
