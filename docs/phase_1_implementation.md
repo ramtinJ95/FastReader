@@ -2188,11 +2188,11 @@ npm run typecheck
 
 ### 9.7 Deliverables
 
-- [ ] `pocketbase` package installed
-- [ ] `src/types/comprehension.ts` created with all types
-- [ ] `src/services/pocketbase.ts` created with all operations
-- [ ] `.env` file created with PocketBase URL
-- [ ] TypeScript compiles without errors
+- [x] `pocketbase` package installed
+- [x] `src/types/comprehension.ts` created with all types
+- [x] `src/services/pocketbase.ts` created with all operations
+- [x] `.env` file created with PocketBase URL
+- [x] TypeScript compiles without errors
 
 ---
 
