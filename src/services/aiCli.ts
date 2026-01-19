@@ -52,8 +52,11 @@ export class AICliService {
   /**
    * Generate questions for the current session.
    *
-   * In a browser context, this creates a prompt that users can copy
-   * to their CLI. For native apps, this would spawn the process directly.
+   * In a browser context, this signals that generation should start.
+   * Questions will arrive via SSE from PocketBase when the AI CLI
+   * (running externally) saves them.
+   *
+   * For native apps (Electron/Tauri), this would spawn the process directly.
    */
   async generateQuestions(
     sessionId: string,
@@ -64,28 +67,30 @@ export class AICliService {
     this.abortController = new AbortController();
     onStatusChange?.('generating');
 
-    const prompt = this.buildPrompt(count);
+    // Store session context for potential future use in native apps
+    this.lastSessionId = sessionId;
+    this.lastDocumentId = documentId;
+    this.lastCount = count;
 
-    // For web apps: We'll rely on SSE from PocketBase to know when questions arrive
-    // The user runs the CLI manually, or we have a backend endpoint that does it
+    // For web apps: We rely on SSE from PocketBase to know when questions arrive.
+    // The AI CLI runs externally (e.g., user runs it in terminal or via MCP).
+    // Generation is considered "started" - questions will arrive via subscription.
 
-    // Check if we're in a context where we can spawn processes
-    if (typeof window !== 'undefined' && !('electronAPI' in window)) {
-      // Browser context - return the prompt for manual execution
-      console.log('AI CLI Prompt (run in terminal):', prompt);
-      console.log(`Command: ${this.config.command} ${this.config.args.join(' ')} "${prompt}"`);
+    // In native context (Electron/Tauri), this would spawn the CLI process
+    // directly using IPC to the main process with sessionId/documentId.
 
-      // In browser, we wait for SSE events from PocketBase
-      // The "generation" is considered started once the user runs the command
-      return { status: 'success' };
-    }
-
-    // Native context (Electron/Tauri) - spawn process directly
-    // This would be implemented with IPC to the main process
     return { status: 'success' };
   }
 
-  private buildPrompt(count: number): string {
+  /** Last session ID used for generation (for native app IPC) */
+  private lastSessionId: string | null = null;
+  /** Last document ID used for generation (for native app IPC) */
+  private lastDocumentId: string | null = null;
+  /** Last question count used for generation (for native app IPC) */
+  private lastCount: number = 5;
+
+  /** Get the prompt for manual CLI execution */
+  getPrompt(count: number = 5): string {
     return `Generate ${count} comprehension questions for my current FastReader session. ` +
       `Use the fastreader_get_current_session tool to get the document and progress, ` +
       `use fastreader_get_question_history to avoid duplicates, ` +
