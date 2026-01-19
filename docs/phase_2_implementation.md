@@ -2146,7 +2146,7 @@ Run through this checklist to verify Phase 2 is complete:
 
 ### Integration
 
-- [ ] Backend status indicator in header
+- [x] Backend status indicator in header
 - [ ] Quiz button in progress bar (when connected)
 - [ ] Milestone prompt appears (simulated)
 - [ ] Quiz modal flow works end-to-end

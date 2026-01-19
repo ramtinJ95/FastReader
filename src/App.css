@@ -132,3 +132,17 @@
 .skip-link:focus {
   top: 0;
 }
+
+/* Backend status indicator */
+.backend-status {
+  font-size: 0.75rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.backend-status.connected {
+  color: #4caf50;
+}
+
+.backend-status.disconnected {
+  color: var(--color-text-muted);
+}
