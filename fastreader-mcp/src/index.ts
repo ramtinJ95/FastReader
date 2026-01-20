@@ -132,7 +132,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "fastreader_get_question_history": {
         const questions = await pb.collection('questions').getList(1, 500, {
-          filter: `document = "${args.documentId}"`
+          filter: `document = "${args.documentId}"`,
+          sort: '-created'
         });
 
         result = {

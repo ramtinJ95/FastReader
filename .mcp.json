@@ -2,7 +2,7 @@
   "mcpServers": {
     "fastreader": {
       "command": "node",
-      "args": ["/home/ramtinj/personal-workspace/FastReader/fastreader-mcp/dist/index.js"],
+      "args": ["./fastreader-mcp/dist/index.js"],
       "env": {
         "FASTREADER_API_URL": "http://127.0.0.1:8090"
       }
