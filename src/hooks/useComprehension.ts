@@ -56,7 +56,7 @@ export interface UseComprehensionReturn {
 
   // Actions
   generateQuiz: (count?: number) => Promise<void>;
-  answerQuestion: (questionId: string, answer: string) => void;
+  answerQuestion: (questionId: string, answer: string, isCorrect?: boolean) => void;
   rateQuestion: (questionId: string, rating: 1 | 2 | 3 | 4) => Promise<void>;
   nextQuestion: () => void;
   closeQuiz: () => void;
@@ -295,20 +295,42 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
     [sessionId, documentId, pendingMilestone]
   );
 
-  const answerQuestion = useCallback((questionId: string, answer: string) => {
-    setQuiz((prev) => {
-      if (!prev) return null;
+  const answerQuestion = useCallback(
+    (questionId: string, answer: string, providedIsCorrect?: boolean) => {
+      setQuiz((prev) => {
+        if (!prev) return null;
 
-      const question = prev.questions.find((q) => q.id === questionId);
-      if (!question) return prev;
+        const question = prev.questions.find((q) => q.id === questionId);
+        if (!question) return prev;
 
-      const isCorrect = answer === question.correct_answer;
-      const newAnswers = new Map(prev.answers);
-      newAnswers.set(questionId, { answer, isCorrect });
+        // Use provided isCorrect if available (e.g., from fill_in_blank component),
+        // otherwise compute based on question type
+        let isCorrect: boolean;
+        if (providedIsCorrect !== undefined) {
+          isCorrect = providedIsCorrect;
+        } else if (question.question_type === 'fill_in_blank' && question.correct_answers) {
+          // For fill_in_blank, check against correct_answers array (case-insensitive)
+          const normalizedAnswer = answer.trim().toLowerCase();
+          isCorrect = question.correct_answers.some(
+            (correct) => correct.toLowerCase() === normalizedAnswer
+          );
+        } else if (question.question_type === 'short_answer') {
+          // For short_answer, we can't auto-check - mark as correct by default
+          // User will self-assess via rating
+          isCorrect = true;
+        } else {
+          // For MCQ, compare with correct_answer
+          isCorrect = answer === question.correct_answer;
+        }
 
-      return { ...prev, answers: newAnswers };
-    });
-  }, []);
+        const newAnswers = new Map(prev.answers);
+        newAnswers.set(questionId, { answer, isCorrect });
+
+        return { ...prev, answers: newAnswers };
+      });
+    },
+    []
+  );
 
   const rateQuestion = useCallback(
     async (questionId: string, rating: 1 | 2 | 3 | 4) => {

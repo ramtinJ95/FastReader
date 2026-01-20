@@ -402,13 +402,22 @@ describe('QuizModal', () => {
       expect(screen.queryByText(/will be supported in a future update/i)).not.toBeInTheDocument();
     });
 
-    it('shows placeholder for fill-in-blank questions', () => {
+    it('renders FillInBlankQuestion for fill-in-blank questions', () => {
       const quiz = createMockQuiz({
-        questions: [createMockQuestion({ question_type: 'fill_in_blank' })],
+        questions: [
+          createMockQuestion({
+            question_type: 'fill_in_blank',
+            sentence_with_blank: 'The main idea is _____.',
+            correct_answers: ['important'],
+          }),
+        ],
       });
       render(<QuizModal {...defaultProps} quiz={quiz} />);
 
-      expect(screen.getByText(/will be supported in a future update/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Fill in the blank/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/will be supported in a future update/i)
+      ).not.toBeInTheDocument();
     });
   });
 });
