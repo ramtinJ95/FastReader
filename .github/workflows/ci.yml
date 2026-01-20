@@ -47,6 +47,27 @@ jobs:
       - name: Install Playwright
         run: npx playwright install --with-deps
 
+      - name: Download and setup PocketBase
+        run: |
+          cd fastreader-backend
+          curl -L https://github.com/pocketbase/pocketbase/releases/download/v0.23.4/pocketbase_0.23.4_linux_amd64.zip -o pocketbase.zip
+          unzip pocketbase.zip
+          chmod +x pocketbase
+
+      - name: Start PocketBase backend
+        run: |
+          cd fastreader-backend
+          ./pocketbase serve --http="127.0.0.1:8090" &
+          # Wait for PocketBase to be ready
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8090/api/health > /dev/null; then
+              echo "PocketBase is ready"
+              break
+            fi
+            echo "Waiting for PocketBase..."
+            sleep 1
+          done
+
       - name: Run E2E tests
         run: npm run test:e2e
 
