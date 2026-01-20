@@ -172,7 +172,7 @@ Run: `npm test -- ShortAnswerQuestion`
 
 ---
 
-## Task 2: Fill-in-the-Blank Question Component
+## Task 2: Fill-in-the-Blank Question Component ✅ COMPLETED
 
 ### 2.1 What to Build
 
