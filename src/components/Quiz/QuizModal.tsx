@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { QuizState } from '../../types';
 import { MCQQuestion } from './MCQQuestion';
+import { ShortAnswerQuestion } from './ShortAnswerQuestion';
 import { QuizFeedback } from './QuizFeedback';
 import './Quiz.css';
 
@@ -71,8 +72,13 @@ export function QuizModal({ quiz, onAnswer, onRating, onNext, onClose }: QuizMod
                 question={currentQuestion}
                 onAnswer={(answer) => onAnswer(currentQuestion.id, answer)}
               />
+            ) : currentQuestion.question_type === 'short_answer' ? (
+              <ShortAnswerQuestion
+                question={currentQuestion}
+                onAnswer={(answer) => onAnswer(currentQuestion.id, answer)}
+              />
             ) : (
-              // Placeholder for other question types (Phase 3)
+              // Placeholder for fill_in_blank (Phase 3 - Task 2)
               <div className="quiz-question">
                 <p>{currentQuestion.question_text}</p>
                 <p className="quiz-unsupported">
