@@ -348,7 +348,7 @@ Run: `npm test -- FillInBlankQuestion`
 
 ---
 
-## Task 3: Self-Assessment Feedback Component
+## Task 3: Self-Assessment Feedback Component ✅ COMPLETED
 
 ### 3.1 What to Build
 
