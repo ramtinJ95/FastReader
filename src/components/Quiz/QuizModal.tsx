@@ -2,12 +2,14 @@ import { useCallback } from 'react';
 import type { QuizState } from '../../types';
 import { MCQQuestion } from './MCQQuestion';
 import { ShortAnswerQuestion } from './ShortAnswerQuestion';
+import { FillInBlankQuestion } from './FillInBlankQuestion';
 import { QuizFeedback } from './QuizFeedback';
+import { SelfAssessmentFeedback } from './SelfAssessmentFeedback';
 import './Quiz.css';
 
 export interface QuizModalProps {
   quiz: QuizState;
-  onAnswer: (questionId: string, answer: string) => void;
+  onAnswer: (questionId: string, answer: string, isCorrect?: boolean) => void;
   onRating: (questionId: string, rating: 1 | 2 | 3 | 4) => void;
   onNext: () => void;
   onClose: () => void;
@@ -77,24 +79,39 @@ export function QuizModal({ quiz, onAnswer, onRating, onNext, onClose }: QuizMod
                 question={currentQuestion}
                 onAnswer={(answer) => onAnswer(currentQuestion.id, answer)}
               />
+            ) : currentQuestion.question_type === 'fill_in_blank' ? (
+              <FillInBlankQuestion
+                question={currentQuestion}
+                onAnswer={(answer, isCorrect) => onAnswer(currentQuestion.id, answer, isCorrect)}
+              />
             ) : (
-              // Placeholder for fill_in_blank (Phase 3 - Task 2)
+              // Unknown question type
               <div className="quiz-question">
                 <p>{currentQuestion.question_text}</p>
                 <p className="quiz-unsupported">
-                  This question type ({currentQuestion.question_type}) will be supported in a future update.
+                  This question type ({currentQuestion.question_type}) is not supported.
                 </p>
               </div>
             )
           ) : (
-            // Show feedback
-            <QuizFeedback
-              question={currentQuestion}
-              userAnswer={currentAnswer.answer}
-              isCorrect={currentAnswer.isCorrect}
-              hasRated={currentAnswer.rating !== undefined}
-              onRating={(rating) => onRating(currentQuestion.id, rating)}
-            />
+            // Show feedback - use appropriate component based on question type
+            currentQuestion.question_type === 'multiple_choice' ? (
+              <QuizFeedback
+                question={currentQuestion}
+                userAnswer={currentAnswer.answer}
+                isCorrect={currentAnswer.isCorrect}
+                hasRated={currentAnswer.rating !== undefined}
+                onRating={(rating) => onRating(currentQuestion.id, rating)}
+              />
+            ) : (
+              <SelfAssessmentFeedback
+                question={currentQuestion}
+                userAnswer={currentAnswer.answer}
+                isCorrect={currentQuestion.question_type === 'fill_in_blank' ? currentAnswer.isCorrect : undefined}
+                hasRated={currentAnswer.rating !== undefined}
+                onRating={(rating) => onRating(currentQuestion.id, rating)}
+              />
+            )
           )}
         </div>
 
