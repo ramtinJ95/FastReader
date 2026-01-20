@@ -93,14 +93,17 @@
 
 .mcq-option {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-height: 52px;
+  text-align: left;
 }
 
 .mcq-option:hover {
@@ -112,18 +115,24 @@
   background: rgba(255, 107, 107, 0.1);
 }
 
-.mcq-option input {
-  margin-top: 3px;
+.mcq-option input[type="radio"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent);
 }
 
 .mcq-option-key {
+  flex-shrink: 0;
   font-weight: bold;
   color: var(--color-accent);
-  min-width: 1.5em;
+  min-width: 1.2em;
 }
 
 .mcq-option-text {
   flex: 1;
+  line-height: 1.4;
 }
 
 /* Feedback */
