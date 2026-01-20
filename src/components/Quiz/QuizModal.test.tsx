@@ -391,14 +391,15 @@ describe('QuizModal', () => {
     });
   });
 
-  describe('unsupported question types', () => {
-    it('shows placeholder for short answer questions', () => {
+  describe('question type rendering', () => {
+    it('renders ShortAnswerQuestion for short answer questions', () => {
       const quiz = createMockQuiz({
         questions: [createMockQuestion({ question_type: 'short_answer' })],
       });
       render(<QuizModal {...defaultProps} quiz={quiz} />);
 
-      expect(screen.getByText(/will be supported in a future update/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Type your answer/i)).toBeInTheDocument();
+      expect(screen.queryByText(/will be supported in a future update/i)).not.toBeInTheDocument();
     });
 
     it('shows placeholder for fill-in-blank questions', () => {
