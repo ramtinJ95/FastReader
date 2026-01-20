@@ -49,6 +49,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "fastreader_get_current_session": {
         // Fetch session without expand (PocketBase has issues with expand on list queries)
+        // Frontend now ensures only one session is active at a time
         const sessions = await pb.collection('sessions').getList(1, 1, {
           filter: 'is_active = true'
         });
