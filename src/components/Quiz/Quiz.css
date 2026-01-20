@@ -208,19 +208,38 @@
 
 .rating-btn:hover {
   border-color: var(--color-border-lighter);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rating-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .rating-btn.rating-1 { border-color: #f44336; }
-.rating-btn.rating-1:hover { background: rgba(244, 67, 54, 0.2); }
+.rating-btn.rating-1:hover {
+  background: rgba(244, 67, 54, 0.2);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
 
 .rating-btn.rating-2 { border-color: #ff9800; }
-.rating-btn.rating-2:hover { background: rgba(255, 152, 0, 0.2); }
+.rating-btn.rating-2:hover {
+  background: rgba(255, 152, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
 
 .rating-btn.rating-3 { border-color: #4caf50; }
-.rating-btn.rating-3:hover { background: rgba(76, 175, 80, 0.2); }
+.rating-btn.rating-3:hover {
+  background: rgba(76, 175, 80, 0.2);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
 
 .rating-btn.rating-4 { border-color: #2196f3; }
-.rating-btn.rating-4:hover { background: rgba(33, 150, 243, 0.2); }
+.rating-btn.rating-4:hover {
+  background: rgba(33, 150, 243, 0.2);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
 
 /* Actions */
 .quiz-actions {
@@ -265,6 +284,7 @@
 .short-answer-input:focus {
   outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
 }
 
 .short-answer-input:disabled {
@@ -399,6 +419,7 @@
 .fill-blank-input:focus {
   outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
 }
 
 .fill-blank-input:disabled {
