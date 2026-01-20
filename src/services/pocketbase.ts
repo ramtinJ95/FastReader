@@ -106,10 +106,34 @@ export async function deleteDocument(id: string): Promise<void> {
 const DEFAULT_WPM = 300;
 
 /**
+ * Deactivate all currently active sessions
+ */
+async function deactivateAllActiveSessions(): Promise<void> {
+  const pb = getPocketBase();
+  try {
+    // Get all active sessions
+    const activeSessions = await pb.collection('sessions').getFullList<ReadingSession>({
+      filter: 'is_active = true',
+    });
+    // Deactivate each one
+    for (const session of activeSessions) {
+      await pb.collection('sessions').update(session.id, {
+        is_active: false,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to deactivate old sessions:', error);
+  }
+}
+
+/**
  * Create a new reading session
+ * Automatically deactivates any existing active sessions first
  */
 export async function createSession(input: CreateSessionInput): Promise<ReadingSession> {
   const pb = getPocketBase();
+  // Deactivate old sessions so only one is active at a time
+  await deactivateAllActiveSessions();
   return await pb.collection('sessions').create<ReadingSession>({
     ...input,
     current_word_index: 0,
