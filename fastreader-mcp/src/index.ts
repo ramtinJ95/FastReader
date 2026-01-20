@@ -48,16 +48,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (name) {
       case "fastreader_get_current_session": {
+        // Fetch session without expand (PocketBase has issues with expand on list queries)
         const sessions = await pb.collection('sessions').getList(1, 1, {
-          filter: 'is_active = true',
-          sort: '-updated',
-          expand: 'document'
+          filter: 'is_active = true'
         });
 
         if (sessions.items.length === 0) {
           result = { error: "No active session found", hint: "The user may not have started reading yet." };
         } else {
           const session = sessions.items[0];
+
+          // Fetch document separately
+          const doc = session.document
+            ? await pb.collection('documents').getOne(session.document as string)
+            : null;
+
           const milestones = await pb.collection('session_milestones').getList(1, 100, {
             filter: `session = "${session.id}"`
           });
@@ -71,12 +76,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               wpmSetting: session.wpm_setting,
               isActive: session.is_active
             },
-            document: session.expand?.document ? {
-              id: (session.expand.document as { id: string }).id,
-              title: (session.expand.document as { title: string }).title,
-              content: (session.expand.document as { content: string }).content,
-              wordCount: (session.expand.document as { word_count: number }).word_count,
-              sourceType: (session.expand.document as { source_type: string }).source_type
+            document: doc ? {
+              id: doc.id,
+              title: doc.title,
+              content: doc.content,
+              wordCount: doc.word_count,
+              sourceType: doc.source_type
             } : null,
             milestones: milestones.items.map(m => ({
               percent: m.milestone_percent,
@@ -97,8 +102,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: doc.content,
           wordCount: doc.word_count,
           sourceType: doc.source_type,
-          sourcePath: doc.source_path,
-          created: doc.created
+          sourcePath: doc.source_path
         };
         break;
       }
@@ -109,8 +113,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const page = Math.floor(offset / limit) + 1;
 
         const docs = await pb.collection('documents').getList(page, limit, {
-          sort: '-created',
-          fields: 'id,title,word_count,source_type,created'
+          fields: 'id,title,word_count,source_type'
         });
 
         result = {
@@ -118,8 +121,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             id: d.id,
             title: d.title,
             wordCount: d.word_count,
-            sourceType: d.source_type,
-            created: d.created
+            sourceType: d.source_type
           })),
           totalItems: docs.totalItems,
           page: docs.page,
@@ -300,12 +302,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
 
   } catch (error) {
+    // Log full error details to stderr for debugging
+    console.error("MCP Error:", error);
+
     const message = error instanceof Error ? error.message : String(error);
+    // Include stack trace for debugging
+    const stack = error instanceof Error ? error.stack : undefined;
 
     return {
       content: [{
         type: "text",
-        text: `Error: ${message}`
+        text: `Error: ${message}${stack ? `\n\nStack: ${stack}` : ''}`
       }],
       isError: true
     };
