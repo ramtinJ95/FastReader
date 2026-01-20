@@ -18,7 +18,7 @@ dev: backend-bg frontend
 ## Start frontend dev server
 frontend:
 	@echo "$(GREEN)Starting frontend on http://localhost:$(FRONTEND_PORT)$(NC)"
-	cd "$(CURDIR)" && npm run dev -- --port $(FRONTEND_PORT)
+	npm run dev -- --port $(FRONTEND_PORT)
 
 ## Start backend (PocketBase) in foreground
 backend:
@@ -32,9 +32,10 @@ backend-bg:
 		echo "$(YELLOW)Backend already running on port $(BACKEND_PORT)$(NC)"; \
 	else \
 		echo "$(GREEN)Starting backend on http://127.0.0.1:$(BACKEND_PORT)$(NC)"; \
-		cd "$(CURDIR)/fastreader-backend" && ./pocketbase serve --http="127.0.0.1:$(BACKEND_PORT)" > /dev/null 2>&1 & \
+		mkdir -p "$(CURDIR)/logs"; \
+		cd "$(CURDIR)/fastreader-backend" && ./pocketbase serve --http="127.0.0.1:$(BACKEND_PORT)" > "$(CURDIR)/logs/backend.log" 2>&1 & \
 		sleep 1; \
-		echo "$(GREEN)Backend started$(NC)"; \
+		echo "$(GREEN)Backend started (logs: logs/backend.log)$(NC)"; \
 	fi
 
 ## Stop all servers

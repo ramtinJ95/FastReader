@@ -15,6 +15,9 @@ import { test, expect, type Page, type APIRequestContext, type Response } from '
 
 const POCKETBASE_URL = 'http://127.0.0.1:8090';
 
+// Timeout for waiting for quiz modal to appear (SSE-based)
+const QUIZ_MODAL_TIMEOUT = 5000;
+
 // Helper to create a test question via PocketBase API
 async function createTestQuestion(
   request: APIRequestContext,
@@ -111,8 +114,8 @@ async function loadTextAndCreateSession(page: Page): Promise<{
   // Wait for dialog to close
   await expect(page.getByRole('dialog', { name: /load text/i })).not.toBeVisible();
 
-  // Wait for network requests to complete
-  await page.waitForTimeout(1000);
+  // Wait for session creation to complete (indicated by Quiz button becoming visible)
+  await expect(page.getByRole('button', { name: 'Quiz' })).toBeVisible({ timeout: 3000 });
 
   // Remove listener
   page.off('response', responseHandler);
@@ -188,7 +191,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       expect(question.id).toBeTruthy();
 
       // Step 4: Quiz modal should appear with the question (via SSE)
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
       await expect(page.getByText('What method does RSVP use to display text?')).toBeVisible();
 
       // Step 5: Type an answer in the textbox
@@ -242,7 +245,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       expect(question.id).toBeTruthy();
 
       // Quiz modal should appear
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
       // Should show question and answer options
       await expect(page.getByText('What is the main benefit of RSVP reading?')).toBeVisible();
@@ -287,7 +290,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       await createTestQuestion(request, documentId!);
 
       // Wait for quiz modal
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
       // Close via X button
       await page.getByRole('button', { name: /close quiz/i }).click();
@@ -308,7 +311,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       await createTestQuestion(request, documentId!);
 
       // Wait for quiz modal
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
       // Should show progress
       await expect(page.getByText(/Question 1 of 1/)).toBeVisible();
@@ -333,7 +336,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       });
 
       // Wait for quiz modal
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
       // Answer the question
       await page.getByRole('textbox', { name: /your answer/i }).fill('Test answer');
@@ -371,7 +374,7 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
       });
 
       // Wait for quiz modal
-      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
       // Answer the question
       await page.getByRole('textbox', { name: /your answer/i }).fill('Test answer');
@@ -420,7 +423,7 @@ test.describe('Quiz Accessibility', () => {
 
     // Wait for dialog
     const dialog = page.getByRole('dialog', { name: 'Quiz' });
-    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await expect(dialog).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
     // Check ARIA attributes
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -437,7 +440,7 @@ test.describe('Quiz Accessibility', () => {
       questionType: 'short_answer',
     });
 
-    await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('dialog', { name: 'Quiz' })).toBeVisible({ timeout: QUIZ_MODAL_TIMEOUT });
 
     // Check that the answer input has an accessible label
     const answerInput = page.getByRole('textbox', { name: /your answer/i });
