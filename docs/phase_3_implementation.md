@@ -847,7 +847,7 @@ Run: `npm test -- QuizModal`
 
 ---
 
-## Task 5: Add CSS Styles
+## Task 5: Add CSS Styles ✅ COMPLETED
 
 ### 5.1 What to Build
 
@@ -1048,7 +1048,7 @@ Visual verification - run the app and confirm:
 
 ---
 
-## Task 6: Update Type Definitions
+## Task 6: Update Type Definitions ✅ COMPLETED
 
 ### 6.1 What to Build
 
