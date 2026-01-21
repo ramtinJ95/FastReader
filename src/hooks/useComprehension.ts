@@ -28,12 +28,15 @@ import type {
   SessionMilestone,
   ConnectionStatus,
 } from '../types/comprehension';
+import type { AICliTool } from '../types';
 
 export interface UseComprehensionOptions {
   /** Called when a milestone is reached */
   onMilestone?: (milestone: SessionMilestone) => void;
   /** Called when connection status changes */
   onConnectionChange?: (status: ConnectionStatus) => void;
+  /** AI CLI tool to use for question generation */
+  aiCliTool?: AICliTool;
 }
 
 export interface UseComprehensionReturn {
@@ -274,7 +277,8 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
 
       try {
         // Call companion server instead of local CLI service
-        const result = await generateQuestionsViaServer(sessionId, documentId, count);
+        const tool = optionsRef.current.aiCliTool || 'claude';
+        const result = await generateQuestionsViaServer(sessionId, documentId, count, tool);
 
         if (!result.success) {
           throw new Error(result.error || 'Generation failed');

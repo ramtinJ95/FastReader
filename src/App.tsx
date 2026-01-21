@@ -72,7 +72,7 @@ function AppContent() {
 
   // Session management
   // Comprehension feature (quiz/questions)
-  const comprehension = useComprehension();
+  const comprehension = useComprehension({ aiCliTool: settings.aiCliTool });
 
   const session = useSession({
     text,

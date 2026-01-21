@@ -19,6 +19,11 @@ export interface SettingsProps {
 }
 
 const WPM_PRESETS = [200, 300, 400, 500];
+const AI_CLI_TOOLS: { value: 'claude' | 'opencode' | 'aider'; label: string }[] = [
+  { value: 'claude', label: 'Claude' },
+  { value: 'opencode', label: 'OpenCode' },
+  { value: 'aider', label: 'Aider' },
+];
 
 export function Settings({ settings, onChange, onClose }: SettingsProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -302,6 +307,26 @@ export function Settings({ settings, onChange, onClose }: SettingsProps) {
                 </div>
               </div>
             )}
+          </section>
+
+          {/* AI CLI Tool Section */}
+          <section className="setting-section">
+            <h3>AI Quiz Generation</h3>
+
+            <div className="setting-row">
+              <label htmlFor="ai-cli-tool">CLI tool</label>
+              <div className="preset-buttons">
+                {AI_CLI_TOOLS.map((tool) => (
+                  <button
+                    key={tool.value}
+                    className={`preset-btn ${settings.aiCliTool === tool.value ? 'active' : ''}`}
+                    onClick={() => updateSetting('aiCliTool', tool.value)}
+                  >
+                    {tool.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </section>
         </div>
       </div>

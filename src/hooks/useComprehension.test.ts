@@ -205,7 +205,7 @@ describe('useComprehension', () => {
       });
 
       const { generateQuestionsViaServer } = await import('../services/aiCli');
-      expect(generateQuestionsViaServer).toHaveBeenCalledWith('session1', 'doc1', 3);
+      expect(generateQuestionsViaServer).toHaveBeenCalledWith('session1', 'doc1', 3, 'claude');
     });
   });
 

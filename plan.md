@@ -628,7 +628,7 @@ const generateQuiz = useCallback(
 
 ---
 
-### Step 10: Add CLI tool selection to Settings UI (optional enhancement)
+### Step 10: Add CLI tool selection to Settings UI ✅ COMPLETED
 
 Add a setting to let users choose their preferred CLI tool:
 
