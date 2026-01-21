@@ -301,7 +301,7 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           setIsGenerating((current) => {
             if (current) {
               setGenerationError(
-                'Generation timed out. The CLI may still be running.'
+                'Generation timed out. Please try again or check the companion server logs for errors.'
               );
               return false;
             }
