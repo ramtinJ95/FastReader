@@ -54,7 +54,7 @@ export function SelfAssessmentFeedback({
             </p>
           ) : (
             <p className="answer-text">
-              {question.correct_answers?.join(', ')}
+              {question.correct_answers?.join(', ') || question.correct_answer}
             </p>
           )}
         </div>
