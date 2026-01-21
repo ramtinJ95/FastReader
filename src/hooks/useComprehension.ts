@@ -171,6 +171,21 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
     };
   }, [sessionId, documentId, isConnected]);
 
+  // Reset generation state when session/document changes (e.g., user loads new text)
+  // This prevents the "generating" overlay from being stuck when switching documents
+  useEffect(() => {
+    // Clear any pending generation timeout from previous session
+    if (generationTimeoutRef.current) {
+      clearTimeout(generationTimeoutRef.current);
+      generationTimeoutRef.current = null;
+    }
+    // Reset generation state - new session means any old generation is orphaned
+    setIsGenerating(false);
+    setGenerationError(null);
+    // Clear quiz from previous document
+    setQuiz(null);
+  }, [sessionId, documentId]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
