@@ -63,6 +63,7 @@ generateRoute.post('/generate', async (c) => {
       success: true,
       message: 'Question generation completed',
       tool,
+      spawnId,
     })
   } else {
     console.error(`[${spawnId}] Failed:`, result.error || result.stderr)
