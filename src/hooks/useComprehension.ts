@@ -343,9 +343,8 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           isCorrect = true;
         } else if (question.question_type === 'multiple_choice' && question.options) {
           // For MCQ, the answer is the option key (e.g., "A", "B")
-          // Look up the value and compare with correct_answer
-          const selectedValue = question.options[answer as keyof typeof question.options];
-          isCorrect = selectedValue === question.correct_answer;
+          // Compare directly with correct_answer key
+          isCorrect = answer === question.correct_answer;
         } else {
           // Fallback: direct comparison
           isCorrect = answer === question.correct_answer;
