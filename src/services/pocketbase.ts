@@ -315,7 +315,11 @@ export function subscribeToQuestions(
 
   return () => {
     pb.collection('questions').unsubscribe('*').catch((error) => {
-      console.error('Failed to unsubscribe from questions:', error);
+      // Silently ignore 404 errors - these occur when the client connection
+      // was already terminated (e.g., during document changes)
+      if (error?.status !== 404) {
+        console.error('Failed to unsubscribe from questions:', error);
+      }
     });
   };
 }
@@ -346,7 +350,11 @@ export function subscribeToMilestones(
 
   return () => {
     pb.collection('session_milestones').unsubscribe('*').catch((error) => {
-      console.error('Failed to unsubscribe from milestones:', error);
+      // Silently ignore 404 errors - these occur when the client connection
+      // was already terminated (e.g., during document changes)
+      if (error?.status !== 404) {
+        console.error('Failed to unsubscribe from milestones:', error);
+      }
     });
   };
 }
@@ -357,9 +365,15 @@ export function subscribeToMilestones(
 export function unsubscribeAll(): void {
   const pb = getPocketBase();
   pb.collection('questions').unsubscribe().catch((error) => {
-    console.error('Failed to unsubscribe from questions:', error);
+    // Silently ignore 404 errors - expected during cleanup
+    if (error?.status !== 404) {
+      console.error('Failed to unsubscribe from questions:', error);
+    }
   });
   pb.collection('session_milestones').unsubscribe().catch((error) => {
-    console.error('Failed to unsubscribe from milestones:', error);
+    // Silently ignore 404 errors - expected during cleanup
+    if (error?.status !== 404) {
+      console.error('Failed to unsubscribe from milestones:', error);
+    }
   });
 }

@@ -171,6 +171,21 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
     };
   }, [sessionId, documentId, isConnected]);
 
+  // Reset generation state when session/document changes (e.g., user loads new text)
+  // This prevents the "generating" overlay from being stuck when switching documents
+  useEffect(() => {
+    // Clear any pending generation timeout from previous session
+    if (generationTimeoutRef.current) {
+      clearTimeout(generationTimeoutRef.current);
+      generationTimeoutRef.current = null;
+    }
+    // Reset generation state - new session means any old generation is orphaned
+    setIsGenerating(false);
+    setGenerationError(null);
+    // Clear quiz from previous document
+    setQuiz(null);
+  }, [sessionId, documentId]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -318,8 +333,13 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           // For short_answer, we can't auto-check - mark as correct by default
           // User will self-assess via rating
           isCorrect = true;
+        } else if (question.question_type === 'multiple_choice' && question.options) {
+          // For MCQ, the answer is the option key (e.g., "A", "B")
+          // Look up the value and compare with correct_answer
+          const selectedValue = question.options[answer as keyof typeof question.options];
+          isCorrect = selectedValue === question.correct_answer;
         } else {
-          // For MCQ, compare with correct_answer
+          // Fallback: direct comparison
           isCorrect = answer === question.correct_answer;
         }
 
