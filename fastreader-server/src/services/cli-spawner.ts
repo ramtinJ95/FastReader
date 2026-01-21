@@ -1,25 +1,8 @@
 import { spawn, ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
+import type { CLITool, SpawnOptions, SpawnResult } from '../types.js'
 
-export type CLITool = 'claude' | 'opencode' | 'aider'
-
-export interface SpawnOptions {
-  tool: CLITool
-  prompt: string
-  mcpConfigPath: string
-  timeout?: number // ms, default 120000 (2 min)
-  workingDir?: string
-  onStdout?: (data: string) => void
-  onStderr?: (data: string) => void
-}
-
-export interface SpawnResult {
-  success: boolean
-  exitCode: number | null
-  stdout: string
-  stderr: string
-  error?: string
-}
+export type { CLITool, SpawnOptions, SpawnResult }
 
 const ALLOWED_TOOLS: CLITool[] = ['claude', 'opencode', 'aider']
 const DEFAULT_TIMEOUT = 120000 // 2 minutes

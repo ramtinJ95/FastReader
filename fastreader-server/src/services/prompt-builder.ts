@@ -1,8 +1,6 @@
-export interface PromptOptions {
-  sessionId: string
-  documentId: string
-  count: number
-}
+import type { PromptOptions } from '../types.js'
+
+export type { PromptOptions }
 
 export function buildQuestionGenerationPrompt(options: PromptOptions): string {
   return `Generate ${options.count} comprehension questions for my current FastReader session.
