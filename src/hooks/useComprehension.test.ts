@@ -17,9 +17,7 @@ vi.mock('../services/pocketbase', () => ({
 }));
 
 vi.mock('../services/aiCli', () => ({
-  getAICliService: vi.fn().mockReturnValue({
-    generateQuestions: vi.fn().mockResolvedValue({ status: 'success' }),
-  }),
+  generateQuestionsViaServer: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 describe('useComprehension', () => {
@@ -206,9 +204,8 @@ describe('useComprehension', () => {
         await result.current.generateQuiz(3);
       });
 
-      const { getAICliService } = await import('../services/aiCli');
-      const service = getAICliService();
-      expect(service.generateQuestions).toHaveBeenCalledWith('session1', 'doc1', 3);
+      const { generateQuestionsViaServer } = await import('../services/aiCli');
+      expect(generateQuestionsViaServer).toHaveBeenCalledWith('session1', 'doc1', 3);
     });
   });
 

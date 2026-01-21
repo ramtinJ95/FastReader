@@ -22,7 +22,7 @@ import {
   subscribeToMilestones,
   unsubscribeAll,
 } from '../services/pocketbase';
-import { getAICliService } from '../services/aiCli';
+import { generateQuestionsViaServer } from '../services/aiCli';
 import type {
   QuizState,
   SessionMilestone,
@@ -273,8 +273,12 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
       setGenerationError(null);
 
       try {
-        const cliService = getAICliService();
-        await cliService.generateQuestions(sessionId, documentId, count);
+        // Call companion server instead of local CLI service
+        const result = await generateQuestionsViaServer(sessionId, documentId, count);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Generation failed');
+        }
 
         // Mark milestone as prompted if we have one
         if (pendingMilestone) {
@@ -293,7 +297,7 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           setIsGenerating((current) => {
             if (current) {
               setGenerationError(
-                'Generation timed out. Please try again or run the CLI manually.'
+                'Generation timed out. The CLI may still be running.'
               );
               return false;
             }
