@@ -333,8 +333,13 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           // For short_answer, we can't auto-check - mark as correct by default
           // User will self-assess via rating
           isCorrect = true;
+        } else if (question.question_type === 'multiple_choice' && question.options) {
+          // For MCQ, the answer is the option key (e.g., "A", "B")
+          // Look up the value and compare with correct_answer
+          const selectedValue = question.options[answer as keyof typeof question.options];
+          isCorrect = selectedValue === question.correct_answer;
         } else {
-          // For MCQ, compare with correct_answer
+          // Fallback: direct comparison
           isCorrect = answer === question.correct_answer;
         }
 
