@@ -35,6 +35,12 @@ export class CLISpawner extends EventEmitter {
 
       this.activeProcesses.set(id, child)
 
+      // Write prompt to stdin for claude CLI (it reads from stdin in -p mode)
+      if (options.tool === 'claude' && options.prompt) {
+        child.stdin?.write(options.prompt)
+        child.stdin?.end()
+      }
+
       let stdout = ''
       let stderr = ''
 
@@ -88,11 +94,11 @@ export class CLISpawner extends EventEmitter {
   private buildCommand(options: SpawnOptions): { command: string; args: string[] } {
     switch (options.tool) {
       case 'claude':
+        // Note: prompt is written to stdin, not passed as argument
         return {
           command: 'claude',
           args: [
             '-p',
-            options.prompt,
             '--mcp-config',
             options.mcpConfigPath,
             '--allowedTools',
