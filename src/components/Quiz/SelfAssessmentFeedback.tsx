@@ -49,7 +49,9 @@ export function SelfAssessmentFeedback({
         <div className="answer-section model-answer-section">
           <h4>{isShortAnswer ? 'Model Answer:' : 'Correct Answer(s):'}</h4>
           {isShortAnswer ? (
-            <p className="answer-text">{question.ideal_answer}</p>
+            <p className="answer-text">
+              {question.ideal_answer || question.correct_answer}
+            </p>
           ) : (
             <p className="answer-text">
               {question.correct_answers?.join(', ')}
