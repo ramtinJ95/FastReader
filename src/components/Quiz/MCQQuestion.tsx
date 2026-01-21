@@ -1,9 +1,38 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Question } from '../../types';
 
 export interface MCQQuestionProps {
   question: Question;
   onAnswer: (answer: string) => void;
+}
+
+/**
+ * Seeded random number generator for consistent shuffling
+ */
+function seededRandom(seed: string): () => number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return () => {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    return hash / 0x7fffffff;
+  };
+}
+
+/**
+ * Shuffle array using Fisher-Yates with seeded random
+ */
+function shuffleWithSeed<T>(array: T[], seed: string): T[] {
+  const result = [...array];
+  const random = seededRandom(seed);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 export function MCQQuestion({ question, onAnswer }: MCQQuestionProps) {
@@ -19,18 +48,23 @@ export function MCQQuestion({ question, onAnswer }: MCQQuestionProps) {
     }
   }, [selected, onAnswer]);
 
+  // Shuffle options consistently based on question ID
+  const shuffledOptions = useMemo(() => {
+    if (!question.options) return [];
+    const entries = Object.entries(question.options) as [string, string][];
+    return shuffleWithSeed(entries, question.id);
+  }, [question.options, question.id]);
+
   if (!question.options) {
     return <p>Error: No options provided for this question.</p>;
   }
-
-  const options = Object.entries(question.options) as [string, string][];
 
   return (
     <div className="mcq-question">
       <p className="question-text">{question.question_text}</p>
 
       <div className="mcq-options" role="radiogroup" aria-label="Answer options">
-        {options.map(([key, value]) => (
+        {shuffledOptions.map(([key, value]) => (
           <label
             key={key}
             className={`mcq-option ${selected === key ? 'selected' : ''}`}

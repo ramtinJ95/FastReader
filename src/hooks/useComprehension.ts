@@ -22,18 +22,21 @@ import {
   subscribeToMilestones,
   unsubscribeAll,
 } from '../services/pocketbase';
-import { getAICliService } from '../services/aiCli';
+import { generateQuestionsViaServer } from '../services/aiCli';
 import type {
   QuizState,
   SessionMilestone,
   ConnectionStatus,
 } from '../types/comprehension';
+import type { AICliTool } from '../types';
 
 export interface UseComprehensionOptions {
   /** Called when a milestone is reached */
   onMilestone?: (milestone: SessionMilestone) => void;
   /** Called when connection status changes */
   onConnectionChange?: (status: ConnectionStatus) => void;
+  /** AI CLI tool to use for question generation */
+  aiCliTool?: AICliTool;
 }
 
 export interface UseComprehensionReturn {
@@ -273,8 +276,13 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
       setGenerationError(null);
 
       try {
-        const cliService = getAICliService();
-        await cliService.generateQuestions(sessionId, documentId, count);
+        // Call companion server instead of local CLI service
+        const tool = optionsRef.current.aiCliTool || 'claude';
+        const result = await generateQuestionsViaServer(sessionId, documentId, count, tool);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Generation failed');
+        }
 
         // Mark milestone as prompted if we have one
         if (pendingMilestone) {
@@ -293,7 +301,7 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           setIsGenerating((current) => {
             if (current) {
               setGenerationError(
-                'Generation timed out. Please try again or run the CLI manually.'
+                'Generation timed out. Please try again or check the companion server logs for errors.'
               );
               return false;
             }
@@ -335,9 +343,8 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
           isCorrect = true;
         } else if (question.question_type === 'multiple_choice' && question.options) {
           // For MCQ, the answer is the option key (e.g., "A", "B")
-          // Look up the value and compare with correct_answer
-          const selectedValue = question.options[answer as keyof typeof question.options];
-          isCorrect = selectedValue === question.correct_answer;
+          // Compare directly with correct_answer key
+          isCorrect = answer === question.correct_answer;
         } else {
           // Fallback: direct comparison
           isCorrect = answer === question.correct_answer;

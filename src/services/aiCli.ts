@@ -118,3 +118,39 @@ export function getAICliService(): AICliService {
   }
   return cliService;
 }
+
+/**
+ * Generate questions via the companion server.
+ *
+ * Calls the companion server which spawns the AI CLI tool to generate
+ * comprehension questions. Questions arrive via PocketBase SSE subscription.
+ */
+export async function generateQuestionsViaServer(
+  sessionId: string,
+  documentId: string,
+  count: number = 5,
+  tool: 'claude' | 'opencode' | 'aider' = 'claude'
+): Promise<{ success: boolean; error?: string }> {
+  const serverUrl = import.meta.env.VITE_COMPANION_SERVER_URL || 'http://127.0.0.1:3001';
+
+  try {
+    const response = await fetch(`${serverUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, documentId, count, tool }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Server error' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}

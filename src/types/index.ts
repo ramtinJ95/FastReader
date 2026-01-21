@@ -1,4 +1,9 @@
 /**
+ * Supported AI CLI tools for question generation
+ */
+export type AICliTool = 'claude' | 'opencode' | 'aider';
+
+/**
  * Settings for the RSVP reader
  */
 export interface Settings {
@@ -14,6 +19,7 @@ export interface Settings {
   rampUpEnabled: boolean;
   rampUpStartWpm: number;
   rampUpDuration: number; // in seconds
+  aiCliTool: AICliTool;
 }
 
 /**
@@ -32,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rampUpEnabled: false,
   rampUpStartWpm: 250,
   rampUpDuration: 60, // 1 minute
+  aiCliTool: 'claude',
 };
 
 /**
