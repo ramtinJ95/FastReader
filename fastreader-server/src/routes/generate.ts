@@ -36,8 +36,11 @@ generateRoute.post('/generate', async (c) => {
   // Build the prompt
   const prompt = buildQuestionGenerationPrompt({ sessionId, documentId, count })
 
-  // Path to MCP config (relative to project root)
-  const mcpConfigPath = path.resolve(process.cwd(), '..', '.mcp.json')
+  // Path to MCP config - configurable via environment variable
+  // Defaults to .mcp.json in the project root (parent of fastreader-server)
+  const mcpConfigPath = process.env.MCP_CONFIG_PATH
+    ? path.resolve(process.env.MCP_CONFIG_PATH)
+    : path.resolve(process.cwd(), '..', '.mcp.json')
 
   // Spawn the CLI
   const spawnId = randomUUID()
