@@ -338,7 +338,7 @@ function AppContent() {
             <button
               className="icon-btn"
               onClick={() => setShowImportModal(true)}
-              title="Import Document (I)"
+              title="Import Document"
               aria-label="Import document"
             >
               <ImportIcon />
