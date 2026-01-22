@@ -1,6 +1,6 @@
 module github.com/ramtinJ95/fastreader-extract
 
-go 1.25.5
+go 1.23
 
 require (
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
