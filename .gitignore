@@ -38,3 +38,6 @@ coverage/
 playwright-report/
 test-results/
 .playwright-mcp/
+
+# Go build artifacts
+fastreader-extract/bin/
