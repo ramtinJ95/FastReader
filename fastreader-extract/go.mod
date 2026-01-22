@@ -3,6 +3,7 @@ module github.com/ramtinJ95/fastreader-extract
 go 1.25.5
 
 require (
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/net v0.49.0
 )

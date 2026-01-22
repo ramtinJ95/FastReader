@@ -465,7 +465,7 @@ make build
 
 ---
 
-## Task 3: PDF Extraction
+## Task 3: PDF Extraction [COMPLETED]
 
 ### 3.1 Add PDF Library
 
