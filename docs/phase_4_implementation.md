@@ -158,7 +158,7 @@ make build
 
 ---
 
-## Task 2: URL Extraction
+## Task 2: URL Extraction [COMPLETED]
 
 ### 2.1 Create URL Extractor
 
