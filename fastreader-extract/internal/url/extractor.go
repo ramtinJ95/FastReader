@@ -74,16 +74,17 @@ func findTitle(n *html.Node) string {
 
 	// Check og:title meta tag
 	if n.Type == html.ElementNode && n.Data == "meta" {
-		var property, content string
+		var isOGTitle bool
+		var content string
 		for _, attr := range n.Attr {
 			if attr.Key == "property" && attr.Val == "og:title" {
-				property = attr.Val
+				isOGTitle = true
 			}
 			if attr.Key == "content" {
 				content = attr.Val
 			}
 		}
-		if property == "og:title" && content != "" {
+		if isOGTitle && content != "" {
 			return content
 		}
 	}
