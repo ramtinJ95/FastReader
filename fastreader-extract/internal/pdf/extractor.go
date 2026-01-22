@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/ledongthuc/pdf"
+	"github.com/ramtinJ95/fastreader-extract/internal/text"
 )
 
 type ExtractResult struct {
@@ -48,7 +48,7 @@ func Extract(filePath string) (*ExtractResult, error) {
 		buf.WriteString("\n\n")
 	}
 
-	content := cleanText(buf.String())
+	content := text.CleanText(buf.String())
 
 	// Use filename as default title
 	title := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
@@ -57,23 +57,4 @@ func Extract(filePath string) (*ExtractResult, error) {
 		Title:   title,
 		Content: content,
 	}, nil
-}
-
-func cleanText(text string) string {
-	// Remove excessive whitespace
-	spaceRegex := regexp.MustCompile(`[ \t]+`)
-	text = spaceRegex.ReplaceAllString(text, " ")
-
-	// Collapse multiple newlines
-	newlineRegex := regexp.MustCompile(`\n{3,}`)
-	text = newlineRegex.ReplaceAllString(text, "\n\n")
-
-	// Trim lines
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimSpace(line)
-	}
-	text = strings.Join(lines, "\n")
-
-	return strings.TrimSpace(text)
 }

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/ramtinJ95/fastreader-extract/internal/text"
 	"golang.org/x/net/html"
 )
 
@@ -101,10 +101,7 @@ func extractText(n *html.Node) string {
 	extractTextRecursive(n, &sb)
 
 	// Clean up the text
-	text := sb.String()
-	text = cleanText(text)
-
-	return text
+	return text.CleanText(sb.String())
 }
 
 func extractTextRecursive(n *html.Node, sb *strings.Builder) {
@@ -135,23 +132,4 @@ func extractTextRecursive(n *html.Node, sb *strings.Builder) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		extractTextRecursive(c, sb)
 	}
-}
-
-func cleanText(text string) string {
-	// Collapse multiple whitespace
-	spaceRegex := regexp.MustCompile(`[ \t]+`)
-	text = spaceRegex.ReplaceAllString(text, " ")
-
-	// Collapse multiple newlines
-	newlineRegex := regexp.MustCompile(`\n{3,}`)
-	text = newlineRegex.ReplaceAllString(text, "\n\n")
-
-	// Trim each line
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimSpace(line)
-	}
-	text = strings.Join(lines, "\n")
-
-	return strings.TrimSpace(text)
 }
