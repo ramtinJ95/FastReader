@@ -68,6 +68,9 @@ export interface UseComprehensionReturn {
   syncDocument: (title: string, content: string, wordCount: number) => Promise<void>;
   updateProgress: (wordIndex: number, totalWords: number) => Promise<void>;
 
+  // Set external session (for imports that already created document/session)
+  setExternalSession: (documentId: string, sessionId: string) => void;
+
   // Manual reconnect
   reconnect: () => Promise<void>;
 }
@@ -409,6 +412,15 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
     setGenerationError(null);
   }, [pendingMilestone]);
 
+  // Set external session (for imports that already created document/session in PocketBase)
+  const setExternalSession = useCallback(
+    (extDocumentId: string, extSessionId: string) => {
+      setDocumentId(extDocumentId);
+      setSessionId(extSessionId);
+    },
+    []
+  );
+
   return {
     connectionStatus,
     isConnected,
@@ -426,6 +438,7 @@ export function useComprehension(options: UseComprehensionOptions = {}): UseComp
     closeQuiz,
     syncDocument,
     updateProgress,
+    setExternalSession,
     reconnect,
   };
 }
