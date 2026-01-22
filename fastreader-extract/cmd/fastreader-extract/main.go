@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ramtinJ95/fastreader-extract/internal/url"
 	"github.com/spf13/cobra"
 )
 
@@ -27,9 +28,39 @@ var rootCmd = &cobra.Command{
 	Short: "Extract text from PDFs and URLs for FastReader",
 }
 
+var urlCmd = &cobra.Command{
+	Use:   "url [URL]",
+	Short: "Extract text from a web URL",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		urlStr := args[0]
+
+		result, err := url.Extract(urlStr)
+		if err != nil {
+			return fmt.Errorf("extracting from URL: %w", err)
+		}
+
+		title := result.Title
+		if customTitle != "" {
+			title = customTitle
+		}
+
+		out := Output{
+			Title:      title,
+			Content:    result.Content,
+			WordCount:  countWords(result.Content),
+			SourceType: "url",
+			SourcePath: urlStr,
+		}
+
+		return printOutput(out)
+	},
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "json", "Output format (json or text)")
 	rootCmd.PersistentFlags().StringVarP(&customTitle, "title", "t", "", "Custom title for the document")
+	rootCmd.AddCommand(urlCmd)
 }
 
 func main() {
