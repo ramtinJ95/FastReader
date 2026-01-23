@@ -9,11 +9,13 @@
 ## Overview
 
 This phase adds a dedicated review dashboard where users can:
+
 - See questions due for review today
 - Complete review sessions with FSRS rating
 - View learning statistics
 
 **Components to build**:
+
 1. Review Dashboard page (`/review`)
 2. Due Questions list component
 3. Review Session flow
@@ -21,7 +23,7 @@ This phase adds a dedicated review dashboard where users can:
 
 ---
 
-## Task 1: Review Dashboard Route and Layout
+## Task 1: Review Dashboard Route and Layout ✅ COMPLETED
 
 ### What to Build
 
@@ -54,11 +56,7 @@ export default function ReviewDashboard() {
 
   if (viewMode === 'session') {
     return (
-      <ReviewSession
-        documentId={selectedDocumentId}
-        onComplete={endReview}
-        onCancel={endReview}
-      />
+      <ReviewSession documentId={selectedDocumentId} onComplete={endReview} onCancel={endReview} />
     );
   }
 
@@ -158,10 +156,10 @@ export function useDueQuestions(): DueQuestionsResult {
       const attempts = await pb.collection('question_attempts').getList(1, 100, {
         filter: `due_at <= "${now}"`,
         sort: 'due_at',
-        expand: 'question,question.document'
+        expand: 'question,question.document',
       });
 
-      const dueQuestions: DueQuestion[] = attempts.items.map(attempt => {
+      const dueQuestions: DueQuestion[] = attempts.items.map((attempt) => {
         const question = attempt.expand?.question;
         const document = question?.expand?.document;
 
@@ -177,7 +175,7 @@ export function useDueQuestions(): DueQuestionsResult {
           difficulty: attempt.difficulty || 5,
           state: attempt.state || 0,
           reps: attempt.reps || 0,
-          lapses: attempt.lapses || 0
+          lapses: attempt.lapses || 0,
         };
       });
 
@@ -205,7 +203,7 @@ export function useDueQuestions(): DueQuestionsResult {
       byDocument.set(q.documentId, {
         title: q.documentTitle,
         count: 1,
-        questions: [q]
+        questions: [q],
       });
     }
   }
@@ -216,7 +214,7 @@ export function useDueQuestions(): DueQuestionsResult {
     byDocument,
     isLoading,
     error,
-    refresh: fetchDueQuestions
+    refresh: fetchDueQuestions,
   };
 }
 ```
@@ -263,10 +261,7 @@ export default function DueQuestionsList({ onStartReview }: Props) {
     <div className="due-questions-list">
       <div className="due-questions-list__header">
         <h2>{totalDue} questions due</h2>
-        <button
-          className="due-questions-list__review-all"
-          onClick={() => onStartReview()}
-        >
+        <button className="due-questions-list__review-all" onClick={() => onStartReview()}>
           Review All
         </button>
       </div>
@@ -301,6 +296,7 @@ export default function DueQuestionsList({ onStartReview }: Props) {
 5. Test the empty state by setting all `due_at` values to the future
 
 **Manual test data setup**:
+
 ```bash
 # Create a test question_attempt with due_at in the past via PocketBase Admin UI
 # or use curl:
@@ -347,7 +343,7 @@ export function useReviewStats(): ReviewStats {
     questionsByState: { new: 0, learning: 0, review: 0, relearning: 0 },
     streakDays: 0,
     isLoading: true,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -358,21 +354,21 @@ export function useReviewStats(): ReviewStats {
 
         // Correct attempts
         const correctAttempts = await pb.collection('question_attempts').getList(1, 1, {
-          filter: 'is_correct = true'
+          filter: 'is_correct = true',
         });
 
         // Count by state (get latest attempt per question)
         const stateNew = await pb.collection('question_attempts').getList(1, 1, {
-          filter: 'state = 0'
+          filter: 'state = 0',
         });
         const stateLearning = await pb.collection('question_attempts').getList(1, 1, {
-          filter: 'state = 1'
+          filter: 'state = 1',
         });
         const stateReview = await pb.collection('question_attempts').getList(1, 1, {
-          filter: 'state = 2'
+          filter: 'state = 2',
         });
         const stateRelearning = await pb.collection('question_attempts').getList(1, 1, {
-          filter: 'state = 3'
+          filter: 'state = 3',
         });
 
         const total = totalAttempts.totalItems;
@@ -386,17 +382,17 @@ export function useReviewStats(): ReviewStats {
             new: stateNew.totalItems,
             learning: stateLearning.totalItems,
             review: stateReview.totalItems,
-            relearning: stateRelearning.totalItems
+            relearning: stateRelearning.totalItems,
           },
           streakDays: 0, // Could calculate from attempt dates
           isLoading: false,
-          error: null
+          error: null,
         });
       } catch (err) {
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
           isLoading: false,
-          error: err instanceof Error ? err.message : 'Failed to load stats'
+          error: err instanceof Error ? err.message : 'Failed to load stats',
         }));
       }
     }
@@ -497,7 +493,10 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
   const { pb } = usePocketBase();
   const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [results, setResults] = useState<{ correct: number; total: number }>({ correct: 0, total: 0 });
+  const [results, setResults] = useState<{ correct: number; total: number }>({
+    correct: 0,
+    total: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [showAnswer, setShowAnswer] = useState(false);
   const [userAnswer, setUserAnswer] = useState<string | null>(null);
@@ -514,10 +513,10 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
       const attempts = await pb.collection('question_attempts').getList(1, 50, {
         filter,
         sort: 'due_at',
-        expand: 'question'
+        expand: 'question',
       });
 
-      const reviewQuestions: ReviewQuestion[] = attempts.items.map(attempt => {
+      const reviewQuestions: ReviewQuestion[] = attempts.items.map((attempt) => {
         const q = attempt.expand?.question;
         return {
           attemptId: attempt.id,
@@ -526,7 +525,7 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
           questionType: q?.question_type || 'multiple_choice',
           options: q?.options,
           correctAnswer: q?.correct_answer || '',
-          rationale: q?.rationale || ''
+          rationale: q?.rationale || '',
         };
       });
 
@@ -555,18 +554,18 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
       question: currentQuestion.questionId,
       user_answer: userAnswer,
       is_correct: isCorrect,
-      rating
+      rating,
     });
 
-    setResults(prev => ({
+    setResults((prev) => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
-      total: prev.total + 1
+      total: prev.total + 1,
     }));
 
     // Move to next question
     setShowAnswer(false);
     setUserAnswer(null);
-    setCurrentIndex(prev => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
   };
 
   if (isLoading) {
@@ -583,19 +582,15 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
   }
 
   if (isComplete) {
-    return (
-      <ReviewComplete
-        correct={results.correct}
-        total={results.total}
-        onDone={onComplete}
-      />
-    );
+    return <ReviewComplete correct={results.correct} total={results.total} onDone={onComplete} />;
   }
 
   return (
     <div className="review-session">
       <header className="review-session__header">
-        <button className="review-session__cancel" onClick={onCancel}>Cancel</button>
+        <button className="review-session__cancel" onClick={onCancel}>
+          Cancel
+        </button>
         <span className="review-session__progress">
           {currentIndex + 1} / {questions.length}
         </span>
@@ -632,13 +627,21 @@ interface Props {
   onRating: (rating: 1 | 2 | 3 | 4) => void;
 }
 
-export default function QuestionCard({ question, showAnswer, userAnswer, onAnswer, onRating }: Props) {
+export default function QuestionCard({
+  question,
+  showAnswer,
+  userAnswer,
+  onAnswer,
+  onRating,
+}: Props) {
   const isCorrect = userAnswer === question.correctAnswer;
 
   if (showAnswer) {
     return (
       <div className="question-card question-card--feedback">
-        <div className={`question-card__result ${isCorrect ? 'question-card__result--correct' : 'question-card__result--incorrect'}`}>
+        <div
+          className={`question-card__result ${isCorrect ? 'question-card__result--correct' : 'question-card__result--incorrect'}`}
+        >
           {isCorrect ? 'Correct!' : 'Incorrect'}
         </div>
 
@@ -667,11 +670,7 @@ export default function QuestionCard({ question, showAnswer, userAnswer, onAnswe
 
         <div className="question-card__options">
           {Object.entries(question.options).map(([key, value]) => (
-            <button
-              key={key}
-              className="question-card__option"
-              onClick={() => onAnswer(key)}
-            >
+            <button key={key} className="question-card__option" onClick={() => onAnswer(key)}>
               <span className="question-card__option-key">{key}</span>
               <span className="question-card__option-text">{value}</span>
             </button>
@@ -686,12 +685,14 @@ export default function QuestionCard({ question, showAnswer, userAnswer, onAnswe
     <div className="question-card">
       <p className="question-card__question">{question.questionText}</p>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.target as HTMLFormElement;
-        const input = form.elements.namedItem('answer') as HTMLInputElement;
-        onAnswer(input.value);
-      }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const input = form.elements.namedItem('answer') as HTMLInputElement;
+          onAnswer(input.value);
+        }}
+      >
         <input
           type="text"
           name="answer"
@@ -699,7 +700,9 @@ export default function QuestionCard({ question, showAnswer, userAnswer, onAnswe
           placeholder="Your answer..."
           autoFocus
         />
-        <button type="submit" className="question-card__submit">Submit</button>
+        <button type="submit" className="question-card__submit">
+          Submit
+        </button>
       </form>
     </div>
   );
@@ -936,6 +939,7 @@ Basic CSS for the review components. Adapt to your existing design system.
 ```
 
 Import in your main CSS or component:
+
 ```tsx
 import '../styles/review.css';
 ```
@@ -970,9 +974,7 @@ export default function Navigation() {
       <NavLink to="/">Read</NavLink>
       <NavLink to="/review" className="navigation__review">
         Review
-        {totalDue > 0 && (
-          <span className="navigation__badge">{totalDue}</span>
-        )}
+        {totalDue > 0 && <span className="navigation__badge">{totalDue}</span>}
       </NavLink>
     </nav>
   );
@@ -1031,7 +1033,7 @@ export default function Navigation() {
 
 ## Checklist
 
-- [ ] `/review` route loads without errors
+- [x] `/review` route loads without errors (Task 1 completed)
 - [ ] Due questions list fetches and displays correctly
 - [ ] Questions grouped by document
 - [ ] Statistics display correctly
