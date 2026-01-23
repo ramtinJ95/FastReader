@@ -3,11 +3,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useDueQuestions } from './useDueQuestions';
 import type { QuestionAttempt, Question, ComprehensionDocument } from '../types/comprehension';
 
+// Create a shared mock for getList
+const mockGetList = vi.fn();
+
 // Mock PocketBase
 vi.mock('../services/pocketbase', () => ({
   getPocketBase: vi.fn(() => ({
-    collection: vi.fn((name: string) => ({
-      getList: vi.fn(),
+    collection: vi.fn(() => ({
+      getList: mockGetList,
     })),
   })),
 }));
@@ -15,12 +18,10 @@ vi.mock('../services/pocketbase', () => ({
 describe('useDueQuestions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetList.mockReset();
   });
 
   it('should fetch and return due questions', async () => {
-    const { getPocketBase } = await import('../services/pocketbase');
-    const mockPb = getPocketBase();
-
     const mockDocument: ComprehensionDocument = {
       id: 'doc1',
       title: 'Test Document',
@@ -66,13 +67,22 @@ describe('useDueQuestions', () => {
       },
     };
 
-    vi.mocked(mockPb.collection('question_attempts').getList).mockResolvedValue({
-      items: [mockAttemptWithExpand],
-      totalItems: 1,
-      totalPages: 1,
-      page: 1,
-      perPage: 100,
-    });
+    // First call is for total count, second call is for due questions
+    mockGetList
+      .mockResolvedValueOnce({
+        items: [],
+        totalItems: 1,
+        totalPages: 1,
+        page: 1,
+        perPage: 1,
+      })
+      .mockResolvedValueOnce({
+        items: [mockAttemptWithExpand],
+        totalItems: 1,
+        totalPages: 1,
+        page: 1,
+        perPage: 100,
+      });
 
     const { result } = renderHook(() => useDueQuestions());
 
@@ -84,6 +94,7 @@ describe('useDueQuestions', () => {
 
     // Check results
     expect(result.current.totalDue).toBe(1);
+    expect(result.current.totalQuestions).toBe(1);
     expect(result.current.questions).toHaveLength(1);
     expect(result.current.questions[0]).toMatchObject({
       id: 'attempt1',
@@ -102,12 +113,8 @@ describe('useDueQuestions', () => {
   });
 
   it('should handle errors gracefully', async () => {
-    const { getPocketBase } = await import('../services/pocketbase');
-    const mockPb = getPocketBase();
-
-    vi.mocked(mockPb.collection('question_attempts').getList).mockRejectedValue(
-      new Error('Network error')
-    );
+    // First call throws error
+    mockGetList.mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useDueQuestions());
 
@@ -118,9 +125,6 @@ describe('useDueQuestions', () => {
   });
 
   it('should group questions by document', async () => {
-    const { getPocketBase } = await import('../services/pocketbase');
-    const mockPb = getPocketBase();
-
     const doc1: ComprehensionDocument = {
       id: 'doc1',
       title: 'Document 1',
@@ -216,13 +220,22 @@ describe('useDueQuestions', () => {
       },
     ];
 
-    vi.mocked(mockPb.collection('question_attempts').getList).mockResolvedValue({
-      items: attempts,
-      totalItems: 3,
-      totalPages: 1,
-      page: 1,
-      perPage: 100,
-    });
+    // First call is for total count, second call is for due questions
+    mockGetList
+      .mockResolvedValueOnce({
+        items: [],
+        totalItems: 3,
+        totalPages: 1,
+        page: 1,
+        perPage: 1,
+      })
+      .mockResolvedValueOnce({
+        items: attempts,
+        totalItems: 3,
+        totalPages: 1,
+        page: 1,
+        perPage: 100,
+      });
 
     const { result } = renderHook(() => useDueQuestions());
 

@@ -5,7 +5,7 @@ interface Props {
 }
 
 export default function DueQuestionsList({ onStartReview }: Props) {
-  const { totalDue, byDocument, isLoading, error, refresh } = useDueQuestions();
+  const { totalDue, totalQuestions, byDocument, isLoading, error, refresh } = useDueQuestions();
 
   if (isLoading) {
     return <div className="due-questions-list due-questions-list--loading">Loading...</div>;
@@ -21,12 +21,26 @@ export default function DueQuestionsList({ onStartReview }: Props) {
   }
 
   if (totalDue === 0) {
+    // Distinguish between "no questions exist" vs "all reviews completed"
+    const hasQuestionsInQueue = totalQuestions > 0;
+
     return (
       <div className="due-questions-list due-questions-list--empty">
-        <p>No questions due for review.</p>
-        <p className="due-questions-list__hint">
-          Complete quizzes while reading to build your review queue.
-        </p>
+        {hasQuestionsInQueue ? (
+          <>
+            <p>All caught up!</p>
+            <p className="due-questions-list__hint">
+              You have reviewed all due questions. Check back later for more.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>No questions due for review.</p>
+            <p className="due-questions-list__hint">
+              Complete quizzes while reading to build your review queue.
+            </p>
+          </>
+        )}
       </div>
     );
   }

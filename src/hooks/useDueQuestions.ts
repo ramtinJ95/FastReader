@@ -20,6 +20,7 @@ interface DueQuestion {
 interface DueQuestionsResult {
   questions: DueQuestion[];
   totalDue: number;
+  totalQuestions: number;
   byDocument: Map<string, { title: string; count: number; questions: DueQuestion[] }>;
   isLoading: boolean;
   error: string | null;
@@ -38,6 +39,7 @@ interface AttemptWithExpand extends QuestionAttempt {
 
 export function useDueQuestions(): DueQuestionsResult {
   const [questions, setQuestions] = useState<DueQuestion[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,9 @@ export function useDueQuestions(): DueQuestionsResult {
     try {
       const pb = getPocketBase();
       const now = new Date().toISOString();
+
+      // Get total count of all question_attempts (for empty state distinction)
+      const allAttempts = await pb.collection('question_attempts').getList(1, 1, {});
 
       // Get all question_attempts with due_at <= now
       const attempts = await pb.collection('question_attempts').getList<AttemptWithExpand>(1, 100, {
@@ -77,6 +82,7 @@ export function useDueQuestions(): DueQuestionsResult {
       });
 
       setQuestions(dueQuestions);
+      setTotalQuestions(allAttempts.totalItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch due questions');
     } finally {
@@ -112,6 +118,7 @@ export function useDueQuestions(): DueQuestionsResult {
   return {
     questions,
     totalDue: questions.length,
+    totalQuestions,
     byDocument,
     isLoading,
     error,
