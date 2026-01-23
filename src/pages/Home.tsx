@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { RSVPDisplay } from '../components/RSVPDisplay';
 import { Controls } from '../components/Controls';
 import { ProgressBar } from '../components/ProgressBar';
@@ -14,6 +15,7 @@ import { usePlayback } from '../hooks/usePlayback';
 import { useSession } from '../hooks/useSession';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useComprehension } from '../hooks/useComprehension';
+import { useDueQuestions } from '../hooks/useDueQuestions';
 import { formatTimeRemaining, extractWordFrame } from '../lib/rsvp-utils';
 import { parseFile } from '../lib/file-parsers';
 import { DEFAULT_SETTINGS, type Settings as SettingsType } from '../types';
@@ -57,6 +59,12 @@ const ImportIcon = () => (
   </svg>
 );
 
+const ReviewIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+  </svg>
+);
+
 export default function Home() {
   const [text, setText] = useState(SAMPLE_TEXT);
   const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
@@ -80,6 +88,9 @@ export default function Home() {
   // Session management
   // Comprehension feature (quiz/questions)
   const comprehension = useComprehension({ aiCliTool: settings.aiCliTool });
+
+  // Due questions for review badge
+  const { totalDue } = useDueQuestions();
 
   const session = useSession({
     text,
@@ -325,6 +336,15 @@ export default function Home() {
             >
               {comprehension.isConnected ? '●' : '○'}
             </span>
+            <Link
+              to="/review"
+              className="icon-btn review-link"
+              title="Review Dashboard"
+              aria-label="Review dashboard"
+            >
+              <ReviewIcon />
+              {totalDue > 0 && <span className="review-badge">{totalDue}</span>}
+            </Link>
             <button
               className="icon-btn"
               onClick={() => setShowTextInput(true)}
