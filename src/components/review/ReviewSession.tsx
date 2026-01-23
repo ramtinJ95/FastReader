@@ -35,6 +35,7 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [userAnswer, setUserAnswer] = useState<string | null>(null);
 
@@ -100,23 +101,28 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
     const isCorrect = userAnswer === currentQuestion.correctAnswer;
 
     // Record the attempt
-    const pb = getPocketBase();
-    await pb.collection('question_attempts').create({
-      question: currentQuestion.questionId,
-      user_answer: userAnswer,
-      is_correct: isCorrect,
-      rating,
-    });
+    try {
+      setSaveError(null);
+      const pb = getPocketBase();
+      await pb.collection('question_attempts').create({
+        question: currentQuestion.questionId,
+        user_answer: userAnswer,
+        is_correct: isCorrect,
+        rating,
+      });
 
-    setResults((prev) => ({
-      correct: prev.correct + (isCorrect ? 1 : 0),
-      total: prev.total + 1,
-    }));
+      setResults((prev) => ({
+        correct: prev.correct + (isCorrect ? 1 : 0),
+        total: prev.total + 1,
+      }));
 
-    // Move to next question
-    setShowAnswer(false);
-    setUserAnswer(null);
-    setCurrentIndex((prev) => prev + 1);
+      // Move to next question
+      setShowAnswer(false);
+      setUserAnswer(null);
+      setCurrentIndex((prev) => prev + 1);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save answer');
+    }
   };
 
   if (isLoading) {
@@ -155,6 +161,12 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
           {currentIndex + 1} / {questions.length}
         </span>
       </header>
+
+      {saveError && (
+        <div className="review-session__save-error" role="alert">
+          Failed to save: {saveError}. Please try again.
+        </div>
+      )}
 
       <QuestionCard
         question={currentQuestion}
