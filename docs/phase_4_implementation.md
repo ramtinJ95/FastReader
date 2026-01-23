@@ -18,7 +18,7 @@ This phase builds a standalone Go CLI (`fastreader-extract`) that extracts text 
 
 ---
 
-## Task 1: Project Setup for fastreader-extract
+## Task 1: Project Setup for fastreader-extract [COMPLETED]
 
 ### 1.1 Create Directory Structure
 
@@ -158,7 +158,7 @@ make build
 
 ---
 
-## Task 2: URL Extraction
+## Task 2: URL Extraction [COMPLETED]
 
 ### 2.1 Create URL Extractor
 
@@ -465,7 +465,7 @@ make build
 
 ---
 
-## Task 3: PDF Extraction
+## Task 3: PDF Extraction [COMPLETED]
 
 ### 3.1 Add PDF Library
 
@@ -696,7 +696,7 @@ make build
 
 ---
 
-## Task 4: FastReader Import UI
+## Task 4: FastReader Import UI [COMPLETED]
 
 ### 4.1 Create Import Service
 
@@ -1223,7 +1223,7 @@ function App() {
 
 ---
 
-## Task 5: Integration Testing
+## Task 5: Integration Testing [COMPLETED]
 
 ### 5.1 Create CLI Integration Test Script
 

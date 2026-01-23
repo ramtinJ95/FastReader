@@ -9,6 +9,8 @@ import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 import { TouchControls } from './components/TouchControls';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { QuizModal, GeneratingOverlay, MilestonePrompt } from './components/Quiz';
+import { ImportModal } from './components/ImportModal';
+import type { ImportResult } from './services/importService';
 import { usePlayback } from './hooks/usePlayback';
 import { useSession } from './hooks/useSession';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -51,12 +53,19 @@ const SaveIcon = () => (
   </svg>
 );
 
+const ImportIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+  </svg>
+);
+
 function AppContent() {
   const [text, setText] = useState(SAMPLE_TEXT);
   const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [showJumpTo, setShowJumpTo] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [fileError, setFileError] = useState('');
@@ -140,7 +149,7 @@ function AppContent() {
   }, []);
 
   // Check if any dialog is open
-  const isDialogOpen = showSettings || showTextInput || showJumpTo;
+  const isDialogOpen = showSettings || showTextInput || showJumpTo || showImportModal;
   const isFocusMode = playback.isPlaying || playback.isPaused;
 
   // Escape handler - close dialogs or stop playback
@@ -151,12 +160,14 @@ function AppContent() {
       setShowSettings(false);
     } else if (showTextInput) {
       setShowTextInput(false);
+    } else if (showImportModal) {
+      setShowImportModal(false);
     } else if (session.showResumePrompt) {
       session.dismissPrompt();
     } else if (playback.isPlaying || playback.isPaused) {
       playback.stop();
     }
-  }, [showJumpTo, showSettings, showTextInput, session, playback]);
+  }, [showJumpTo, showSettings, showTextInput, showImportModal, session, playback]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -251,6 +262,20 @@ function AppContent() {
     [setPlaybackText, comprehension]
   );
 
+  // Handle import from ImportModal - document is already synced to PocketBase
+  const handleImportComplete = useCallback(
+    (result: ImportResult) => {
+      setText(result.content);
+      setPlaybackText(result.content);
+      // The ImportModal has already created the document and session in PocketBase,
+      // but we need to tell comprehension to use this session
+      if (comprehension.isConnected) {
+        comprehension.setExternalSession(result.documentId, result.sessionId);
+      }
+    },
+    [setPlaybackText, comprehension]
+  );
+
   // Touch control handlers
   const handleTouchSkipBackward = useCallback(() => {
     playback.seekTo(Math.max(0, playback.currentWordIndex - 5));
@@ -309,6 +334,14 @@ function AppContent() {
               aria-label="Load text"
             >
               <FileIcon />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowImportModal(true)}
+              title="Import Document"
+              aria-label="Import document"
+            >
+              <ImportIcon />
             </button>
             <button
               className="icon-btn"
@@ -421,6 +454,12 @@ function AppContent() {
         totalWords={playback.words.length}
         onClose={() => setShowJumpTo(false)}
         onJump={playback.seekTo}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
       />
 
       <SavedSessionPrompt
