@@ -34,40 +34,53 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
     total: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [userAnswer, setUserAnswer] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadQuestions() {
-      const pb = getPocketBase();
-      const now = new Date().toISOString();
-      let filter = `due_at <= "${now}"`;
+      setIsLoading(true);
+      setError(null);
 
-      if (documentId) {
-        filter += ` && question.document = "${documentId}"`;
+      try {
+        const pb = getPocketBase();
+        const now = new Date().toISOString();
+        let filter = `due_at <= "${now}"`;
+
+        if (documentId) {
+          filter += ` && question.document = "${documentId}"`;
+        }
+
+        const attempts = await pb
+          .collection('question_attempts')
+          .getList<AttemptWithExpand>(1, 50, {
+            filter,
+            sort: 'due_at',
+            expand: 'question',
+          });
+
+        const reviewQuestions: ReviewQuestion[] = attempts.items.map(
+          (attempt: AttemptWithExpand) => {
+            const q = attempt.expand?.question;
+            return {
+              attemptId: attempt.id,
+              questionId: q?.id || '',
+              questionText: q?.question_text || '',
+              questionType: q?.question_type || 'multiple_choice',
+              options: q?.options,
+              correctAnswer: q?.correct_answer || '',
+              rationale: q?.rationale || '',
+            };
+          }
+        );
+
+        setQuestions(reviewQuestions);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load questions');
+      } finally {
+        setIsLoading(false);
       }
-
-      const attempts = await pb.collection('question_attempts').getList<AttemptWithExpand>(1, 50, {
-        filter,
-        sort: 'due_at',
-        expand: 'question',
-      });
-
-      const reviewQuestions: ReviewQuestion[] = attempts.items.map((attempt: AttemptWithExpand) => {
-        const q = attempt.expand?.question;
-        return {
-          attemptId: attempt.id,
-          questionId: q?.id || '',
-          questionText: q?.question_text || '',
-          questionType: q?.question_type || 'multiple_choice',
-          options: q?.options,
-          correctAnswer: q?.correct_answer || '',
-          rationale: q?.rationale || '',
-        };
-      });
-
-      setQuestions(reviewQuestions);
-      setIsLoading(false);
     }
 
     loadQuestions();
@@ -108,6 +121,15 @@ export default function ReviewSession({ documentId, onComplete, onCancel }: Prop
 
   if (isLoading) {
     return <div className="review-session review-session--loading">Loading review...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="review-session review-session--error">
+        <p>Error: {error}</p>
+        <button onClick={onCancel}>Back to Dashboard</button>
+      </div>
+    );
   }
 
   if (questions.length === 0) {
