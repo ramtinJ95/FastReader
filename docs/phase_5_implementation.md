@@ -103,7 +103,7 @@ function App() {
 
 ---
 
-## Task 2: Due Questions List Component
+## Task 2: Due Questions List Component ✅ COMPLETED
 
 ### What to Build
 
@@ -1034,8 +1034,8 @@ export default function Navigation() {
 ## Checklist
 
 - [x] `/review` route loads without errors (Task 1 completed)
-- [ ] Due questions list fetches and displays correctly
-- [ ] Questions grouped by document
+- [x] Due questions list fetches and displays correctly (Task 2 completed)
+- [x] Questions grouped by document (Task 2 completed)
 - [ ] Statistics display correctly
 - [ ] Review session starts with selected questions
 - [ ] MCQ options are clickable
