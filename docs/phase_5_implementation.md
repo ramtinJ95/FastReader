@@ -307,7 +307,7 @@ curl -X POST http://127.0.0.1:8090/api/collections/question_attempts/records \
 
 ---
 
-## Task 3: Review Statistics Component
+## Task 3: Review Statistics Component ✅ COMPLETED
 
 ### What to Build
 
@@ -1036,7 +1036,7 @@ export default function Navigation() {
 - [x] `/review` route loads without errors (Task 1 completed)
 - [x] Due questions list fetches and displays correctly (Task 2 completed)
 - [x] Questions grouped by document (Task 2 completed)
-- [ ] Statistics display correctly
+- [x] Statistics display correctly (Task 3 completed)
 - [ ] Review session starts with selected questions
 - [ ] MCQ options are clickable
 - [ ] Correct/incorrect feedback displays
