@@ -1,6 +1,5 @@
-READ all of docs/comprehension_master_doc.md this is master document.
-Read all of docs/phase_5_implementation.md Pick ONE task, Start from the Top of the Document.
+Read all of plan.md Pick ONE task, Start from the Top of the Document.
 Verify via web/code search. Complete task, verify via CLI/Test output. Commit change. ONLY do one task.
-Update docs/phase_5_implementation.md with marking a task as completed. If you learn a critical
+Update plan.md with marking a task as completed. If you learn a critical
 operational detail (e.g. how to build), update AGENTS.md. If all tasks done, output exactly: IM DONE
 NEVER GIT PUSH. ONLY COMMIT. DONT USE EGENSKRIVEN TO DO ANYTHING WITH TASKS.
