@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getPocketBase } from '../services/pocketbase';
 import type { QuestionAttempt, Question, ComprehensionDocument } from '../types/comprehension';
 
@@ -89,21 +89,25 @@ export function useDueQuestions(): DueQuestionsResult {
   }, [fetchDueQuestions]);
 
   // Group questions by document
-  const byDocument = new Map<string, { title: string; count: number; questions: DueQuestion[] }>();
+  const byDocument = useMemo(() => {
+    const map = new Map<string, { title: string; count: number; questions: DueQuestion[] }>();
 
-  for (const q of questions) {
-    const existing = byDocument.get(q.documentId);
-    if (existing) {
-      existing.count++;
-      existing.questions.push(q);
-    } else {
-      byDocument.set(q.documentId, {
-        title: q.documentTitle,
-        count: 1,
-        questions: [q],
-      });
+    for (const q of questions) {
+      const existing = map.get(q.documentId);
+      if (existing) {
+        existing.count++;
+        existing.questions.push(q);
+      } else {
+        map.set(q.documentId, {
+          title: q.documentTitle,
+          count: 1,
+          questions: [q],
+        });
+      }
     }
-  }
+
+    return map;
+  }, [questions]);
 
   return {
     questions,
