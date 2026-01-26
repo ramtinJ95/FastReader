@@ -13,8 +13,8 @@ describe('useReviewStats', () => {
   it('should fetch and display review statistics', async () => {
     // Mock PocketBase responses
     const mockPb = {
-      collection: vi.fn((_collectionName: string) => ({
-        getList: vi.fn((_page: number, _perPage: number, options?: any) => {
+      collection: vi.fn(() => ({
+        getList: vi.fn((_page: number, _perPage: number, options?: { filter?: string }) => {
           if (!options?.filter) {
             // Total attempts
             return Promise.resolve({
@@ -46,7 +46,9 @@ describe('useReviewStats', () => {
       })),
     };
 
-    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(mockPb as any);
+    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(
+      mockPb as unknown as ReturnType<typeof pocketbaseService.getPocketBase>
+    );
 
     // Render hook
     const { result } = renderHook(() => useReviewStats());
@@ -80,7 +82,9 @@ describe('useReviewStats', () => {
       })),
     };
 
-    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(mockPb as any);
+    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(
+      mockPb as unknown as ReturnType<typeof pocketbaseService.getPocketBase>
+    );
 
     const { result } = renderHook(() => useReviewStats());
 
@@ -99,7 +103,9 @@ describe('useReviewStats', () => {
       })),
     };
 
-    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(mockPb as any);
+    vi.mocked(pocketbaseService.getPocketBase).mockReturnValue(
+      mockPb as unknown as ReturnType<typeof pocketbaseService.getPocketBase>
+    );
 
     const { result } = renderHook(() => useReviewStats());
 
