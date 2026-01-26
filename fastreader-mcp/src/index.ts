@@ -17,6 +17,20 @@ import {
 import { tools } from "./tools.js";
 import { pb, toSnakeCase, checkConnection } from "./pocketbase-client.js";
 
+// Standardized error messages for better user experience
+const ERROR_MESSAGES = {
+  POCKETBASE_NOT_RUNNING:
+    "PocketBase is not running. Start it with: cd fastreader-backend && ./pocketbase serve",
+  NO_ACTIVE_SESSION:
+    "No active reading session. Open a document in FastReader first.",
+  DOCUMENT_NOT_FOUND: (id: string) =>
+    `Document '${id}' not found. Use fastreader_list_documents to see available documents.`,
+  QUESTION_NOT_FOUND: (id: string) =>
+    `Question '${id}' not found.`,
+  INVALID_RATING:
+    "Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).",
+};
+
 // Create MCP server
 const server = new Server(
   { name: "fastreader", version: "1.0.0" },
@@ -38,7 +52,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{
           type: "text",
-          text: "Error: PocketBase is not running. Please start it with: ./pocketbase serve"
+          text: `Error: ${ERROR_MESSAGES.POCKETBASE_NOT_RUNNING}`
         }],
         isError: true
       };
@@ -195,9 +209,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Validate rating is in FSRS range (1-4)
         if (!answerArgs.rating || answerArgs.rating < 1 || answerArgs.rating > 4) {
-          throw new Error(
-            `Invalid rating: ${answerArgs.rating}. Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).`
-          );
+          throw new Error(ERROR_MESSAGES.INVALID_RATING);
         }
 
         // Validate required fields
@@ -307,13 +319,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     console.error("MCP Error:", error);
 
     const message = error instanceof Error ? error.message : String(error);
-    // Include stack trace for debugging
-    const stack = error instanceof Error ? error.stack : undefined;
+
+    // Translate common errors to user-friendly messages
+    let userMessage = message;
+
+    if (message.includes('ECONNREFUSED') || message.includes('fetch failed')) {
+      userMessage = ERROR_MESSAGES.POCKETBASE_NOT_RUNNING;
+    } else if (message.includes('404') || message.includes('not found')) {
+      // Detect document vs question not found
+      if (message.toLowerCase().includes('document') || (args.documentId && typeof args.documentId === 'string')) {
+        userMessage = ERROR_MESSAGES.DOCUMENT_NOT_FOUND(
+          (args.documentId as string) || 'unknown'
+        );
+      } else if (message.toLowerCase().includes('question') || (args.questionId && typeof args.questionId === 'string')) {
+        userMessage = ERROR_MESSAGES.QUESTION_NOT_FOUND(
+          (args.questionId as string) || 'unknown'
+        );
+      }
+    }
 
     return {
       content: [{
         type: "text",
-        text: `Error: ${message}${stack ? `\n\nStack: ${stack}` : ''}`
+        text: `Error: ${userMessage}`
       }],
       isError: true
     };
