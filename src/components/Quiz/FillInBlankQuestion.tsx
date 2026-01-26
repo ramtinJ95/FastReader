@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Question } from '../../types';
+import { fuzzyMatchAnswer } from '../../lib/string-matching';
 
 export interface FillInBlankQuestionProps {
   question: Question;
@@ -16,12 +17,15 @@ export function FillInBlankQuestion({
 
   const checkAnswer = useCallback(
     (userAnswer: string): boolean => {
-      const normalized = userAnswer.trim().toLowerCase();
-      return (question.correct_answers || []).some(
-        (correct) => correct.toLowerCase() === normalized
-      );
+      const correctAnswers = question.correct_answers || [question.correct_answer];
+      const result = fuzzyMatchAnswer(userAnswer, correctAnswers, {
+        minSimilarity: 85,
+        maxDistance: 2,
+        ignoreCase: true,
+      });
+      return result.isMatch;
     },
-    [question.correct_answers]
+    [question.correct_answers, question.correct_answer]
   );
 
   const handleSubmit = useCallback(() => {
