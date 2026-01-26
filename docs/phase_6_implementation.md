@@ -792,15 +792,15 @@ claude mcp remove fastreader
 
 ### Checklist
 
-- [ ] GitHub Actions workflow builds binaries for all platforms
-- [ ] GitHub Releases contain binaries and checksums
-- [ ] npm package publishes successfully
-- [ ] `npx @anthropic/fastreader-mcp` works
-- [ ] `setup.sh` creates working PocketBase instance
-- [ ] Migrations create all 5 collections
-- [ ] Error messages are helpful and actionable
-- [ ] INSTALL.md is accurate and complete
-- [ ] End-to-end flow works from fresh clone
+- [x] GitHub Actions workflow builds binaries for all platforms
+- [x] GitHub Releases contain binaries and checksums
+- [x] npm package publishes successfully
+- [x] `npx @anthropic/fastreader-mcp` works
+- [x] `setup.sh` creates working PocketBase instance
+- [x] Migrations create all 5 collections
+- [x] Error messages are helpful and actionable
+- [x] INSTALL.md is accurate and complete
+- [x] End-to-end flow works from fresh clone
 
 ---
 
