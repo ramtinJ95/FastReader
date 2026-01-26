@@ -14,9 +14,22 @@ import { test, expect, type Page, type APIRequestContext, type Response } from '
  */
 
 const POCKETBASE_URL = 'http://127.0.0.1:8090';
+const COMPANION_SERVER_URL = 'http://127.0.0.1:3001';
 
 // Timeout for waiting for quiz modal to appear (SSE-based)
 const QUIZ_MODAL_TIMEOUT = 5000;
+
+// Helper to mock the companion server response (it's not running in CI)
+async function mockCompanionServer(page: Page) {
+  await page.route(`${COMPANION_SERVER_URL}/**`, async (route) => {
+    // Return a successful response to keep the generating overlay visible
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true }),
+    });
+  });
+}
 
 // Helper to create a test question via PocketBase API
 async function createTestQuestion(
@@ -125,6 +138,8 @@ async function loadTextAndCreateSession(page: Page): Promise<{
 
 test.describe('Comprehension/Quiz Feature E2E', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock companion server (not running in CI) before navigating
+    await mockCompanionServer(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'FastReader' })).toBeVisible();
   });
@@ -409,6 +424,8 @@ test.describe('Comprehension/Quiz Feature E2E', () => {
 
 test.describe('Quiz Accessibility', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock companion server (not running in CI) before navigating
+    await mockCompanionServer(page);
     await page.goto('/');
   });
 
