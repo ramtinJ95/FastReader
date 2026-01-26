@@ -14,7 +14,13 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { tools } from "./tools.js";
+import {
+  tools,
+  validateRating,
+  validateDocumentId,
+  validateQuestionId,
+  validateQuestions,
+} from "./tools.js";
 import { pb, toSnakeCase, checkConnection } from "./pocketbase-client.js";
 
 // Standardized error messages for better user experience
@@ -110,7 +116,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "fastreader_get_document": {
-        const doc = await pb.collection('documents').getOne(args.documentId as string);
+        const documentId = validateDocumentId(args.documentId);
+        const doc = await pb.collection('documents').getOne(documentId);
         result = {
           id: doc.id,
           title: doc.title,
@@ -146,8 +153,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "fastreader_get_question_history": {
+        const documentId = validateDocumentId(args.documentId);
         const questions = await pb.collection('questions').getList(1, 500, {
-          filter: `document = "${args.documentId}"`,
+          filter: `document = "${documentId}"`,
           sort: '-created'
         });
 
@@ -179,11 +187,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }>;
         };
 
+        // Validate inputs
+        const documentId = validateDocumentId(questionArgs.documentId);
+        validateQuestions(questionArgs.questions);
+
         const saved: Array<{ id: string; questionText: string }> = [];
 
         for (const q of questionArgs.questions) {
           const record = await pb.collection('questions').create({
-            document: questionArgs.documentId,
+            document: documentId,
             session: questionArgs.sessionId || null,
             ...toSnakeCase(q)
           });
@@ -207,21 +219,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           timeSpentMs?: number;
         };
 
-        // Validate rating is in FSRS range (1-4)
-        if (!answerArgs.rating || answerArgs.rating < 1 || answerArgs.rating > 4) {
-          throw new Error(ERROR_MESSAGES.INVALID_RATING);
-        }
+        // Validate inputs using validation functions
+        const questionId = validateQuestionId(answerArgs.questionId);
+        validateRating(answerArgs.rating);
 
-        // Validate required fields
-        if (!answerArgs.questionId) {
-          throw new Error('questionId is required');
-        }
+        // Validate isCorrect is a boolean
         if (typeof answerArgs.isCorrect !== 'boolean') {
           throw new Error('isCorrect must be a boolean');
         }
 
         const attempt = await pb.collection('question_attempts').create({
-          question: answerArgs.questionId,
+          question: questionId,
           user_answer: answerArgs.userAnswer,
           is_correct: answerArgs.isCorrect,
           rating: answerArgs.rating,
