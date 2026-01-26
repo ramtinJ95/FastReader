@@ -19,7 +19,7 @@ const VALIDATION_ERRORS = {
   INVALID_QUESTION_ID: "questionId is required and must be a non-empty string",
   INVALID_QUESTIONS_ARRAY: "questions must be a non-empty array",
   INVALID_QUESTION_FIELDS:
-    "Each question must have questionText, questionType, correctAnswer, and rationale",
+    "Each question must have questionText, questionType, comprehensionType, correctAnswer, and rationale",
 };
 
 /**
@@ -59,6 +59,7 @@ export function validateQuestionId(id: unknown): string {
 interface QuestionInput {
   questionText?: string;
   questionType?: string;
+  comprehensionType?: string;
   correctAnswer?: string;
   rationale?: string;
 }
@@ -73,7 +74,7 @@ export function validateQuestions(questions: unknown): void {
   }
 
   for (const q of questions as QuestionInput[]) {
-    if (!q.questionText || !q.questionType || !q.correctAnswer || !q.rationale) {
+    if (!q.questionText || !q.questionType || !q.comprehensionType || !q.correctAnswer || !q.rationale) {
       throw new Error(VALIDATION_ERRORS.INVALID_QUESTION_FIELDS);
     }
   }
