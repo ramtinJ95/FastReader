@@ -21,7 +21,7 @@ import {
   validateQuestionId,
   validateQuestions,
 } from "./tools.js";
-import { pb, toSnakeCase, checkConnection } from "./pocketbase-client.js";
+import { pb, toSnakeCase, checkConnection, fetchRecordsDirect } from "./pocketbase-client.js";
 
 // Standardized error messages for better user experience
 const ERROR_MESSAGES = {
@@ -84,8 +84,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ? await pb.collection('documents').getOne(session.document as string)
             : null;
 
-          const milestones = await pb.collection('session_milestones').getList(1, 100, {
-            filter: `session = "${session.id}"`
+          // Use direct fetch to work around PocketBase SDK filter encoding issues
+          // Use compact filter syntax (no spaces around =) for compatibility
+          const milestones = await fetchRecordsDirect<{
+            id: string;
+            milestone_percent: number;
+            quiz_prompted: boolean;
+            quiz_completed: boolean;
+          }>('session_milestones', {
+            page: 1,
+            perPage: 100,
+            filter: `session="${session.id}"`
           });
 
           result = {
@@ -154,9 +163,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "fastreader_get_question_history": {
         const documentId = validateDocumentId(args.documentId);
-        const questions = await pb.collection('questions').getList(1, 500, {
-          filter: `document = "${documentId}"`,
-          sort: '-created'
+        // Use direct fetch to work around PocketBase SDK filter encoding issues
+        // Use compact filter syntax (no spaces around =) for compatibility
+        // Sort by -id (descending) as workaround for PocketBase datetime sorting bug
+        const questions = await fetchRecordsDirect<{
+          id: string;
+          question_text: string;
+          question_type: string;
+          comprehension_type: string;
+          created: string;
+        }>('questions', {
+          page: 1,
+          perPage: 500,
+          filter: `document="${documentId}"`,
+          sort: '-id'
         });
 
         result = {
@@ -257,10 +277,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "fastreader_get_due_questions": {
         const dueArgs = args as { limit?: number; documentId?: string };
         const now = new Date().toISOString();
-        let filter = `due_at <= "${now}"`;
+        // Use compact filter syntax (no spaces around operators)
+        let filter = `due_at<="${now}"`;
 
         if (dueArgs.documentId) {
-          filter += ` && question.document = "${dueArgs.documentId}"`;
+          filter += `&&question.document="${dueArgs.documentId}"`;
         }
 
         const attempts = await pb.collection('question_attempts').getList(1, dueArgs.limit || 20, {
