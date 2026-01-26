@@ -1,17 +1,35 @@
 {
   "name": "@anthropic/fastreader-mcp",
   "version": "1.0.0",
-  "description": "MCP server for FastReader comprehension feature",
+  "description": "MCP server for FastReader comprehension features",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "fastreader-mcp": "./dist/index.js"
+    "fastreader-mcp": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "test": "node --test dist/**/*.test.js"
+    "prepublishOnly": "npm run build",
+    "test": "node --test dist/**/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "fastreader",
+    "comprehension",
+    "spaced-repetition"
+  ],
+  "author": "FastReader",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ramtinJ95/fastreader.git",
+    "directory": "fastreader-mcp"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
