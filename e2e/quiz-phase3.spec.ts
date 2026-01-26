@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * Phase 3 Quiz Component E2E Tests
@@ -12,8 +12,24 @@ import { test, expect } from '@playwright/test';
  * For tests requiring quiz data, we inject mock state via window evaluation.
  */
 
+const COMPANION_SERVER_URL = 'http://127.0.0.1:3001';
+
+// Helper to mock the companion server response (it's not running in CI)
+async function mockCompanionServer(page: Page) {
+  await page.route(`${COMPANION_SERVER_URL}/**`, async (route) => {
+    // Return a successful response to keep the generating overlay visible
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true }),
+    });
+  });
+}
+
 test.describe('Phase 3 Quiz Components - UI Tests', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock companion server (not running in CI) before navigating
+    await mockCompanionServer(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'FastReader' })).toBeVisible();
   });
