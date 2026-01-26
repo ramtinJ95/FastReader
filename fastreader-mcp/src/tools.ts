@@ -12,6 +12,74 @@ export interface Tool {
   };
 }
 
+// Standardized error messages for input validation
+const VALIDATION_ERRORS = {
+  INVALID_RATING: "Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).",
+  INVALID_DOCUMENT_ID: "documentId is required and must be a non-empty string",
+  INVALID_QUESTION_ID: "questionId is required and must be a non-empty string",
+  INVALID_QUESTIONS_ARRAY: "questions must be a non-empty array",
+  INVALID_QUESTION_FIELDS:
+    "Each question must have questionText, questionType, comprehensionType, correctAnswer, and rationale",
+};
+
+/**
+ * Validates that the rating is a valid FSRS rating (1-4)
+ * @throws Error if rating is not 1, 2, 3, or 4
+ */
+export function validateRating(rating: number): void {
+  if (![1, 2, 3, 4].includes(rating)) {
+    throw new Error(VALIDATION_ERRORS.INVALID_RATING);
+  }
+}
+
+/**
+ * Validates that a documentId is a non-empty string
+ * @returns The validated documentId
+ * @throws Error if documentId is not a non-empty string
+ */
+export function validateDocumentId(id: unknown): string {
+  if (typeof id !== "string" || id.length === 0) {
+    throw new Error(VALIDATION_ERRORS.INVALID_DOCUMENT_ID);
+  }
+  return id;
+}
+
+/**
+ * Validates that a questionId is a non-empty string
+ * @returns The validated questionId
+ * @throws Error if questionId is not a non-empty string
+ */
+export function validateQuestionId(id: unknown): string {
+  if (typeof id !== "string" || id.length === 0) {
+    throw new Error(VALIDATION_ERRORS.INVALID_QUESTION_ID);
+  }
+  return id;
+}
+
+interface QuestionInput {
+  questionText?: string;
+  questionType?: string;
+  comprehensionType?: string;
+  correctAnswer?: string;
+  rationale?: string;
+}
+
+/**
+ * Validates that questions array is valid and each question has required fields
+ * @throws Error if questions is not a non-empty array or if any question is missing required fields
+ */
+export function validateQuestions(questions: unknown): void {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error(VALIDATION_ERRORS.INVALID_QUESTIONS_ARRAY);
+  }
+
+  for (const q of questions as QuestionInput[]) {
+    if (!q.questionText || !q.questionType || !q.comprehensionType || !q.correctAnswer || !q.rationale) {
+      throw new Error(VALIDATION_ERRORS.INVALID_QUESTION_FIELDS);
+    }
+  }
+}
+
 export const tools: Tool[] = [
   {
     name: "fastreader_get_current_session",

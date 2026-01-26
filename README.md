@@ -144,6 +144,21 @@ fastreader-mcp/      # MCP server for AI assistants
 └── src/             # Tool definitions for question generation
 ```
 
+## Comprehension Features
+
+FastReader includes AI-powered reading comprehension questions. See [Installation Guide](docs/INSTALL.md) for setup.
+
+### Requirements
+- PocketBase (backend)
+- AI CLI with MCP support (Claude Code, Codex, etc.)
+- Node.js 18+ (for MCP server)
+
+### Quick Setup
+```bash
+cd fastreader-backend && ./setup.sh && ./pocketbase serve
+claude mcp add fastreader -- npx @ramtinj/fastreader-mcp
+```
+
 ## Contributing
 
 1. Fork the repository

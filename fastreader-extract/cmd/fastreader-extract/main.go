@@ -22,11 +22,14 @@ type Output struct {
 var (
 	outputFormat string
 	customTitle  string
+	// version is set via ldflags at build time
+	version = "dev"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "fastreader-extract",
-	Short: "Extract text from PDFs and URLs for FastReader",
+	Use:     "fastreader-extract",
+	Short:   "Extract text from PDFs and URLs for FastReader",
+	Version: version,
 }
 
 var urlCmd = &cobra.Command{

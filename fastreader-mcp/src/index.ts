@@ -14,8 +14,28 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { tools } from "./tools.js";
-import { pb, toSnakeCase, checkConnection } from "./pocketbase-client.js";
+import {
+  tools,
+  validateRating,
+  validateDocumentId,
+  validateQuestionId,
+  validateQuestions,
+} from "./tools.js";
+import { pb, toSnakeCase, checkConnection, fetchRecordsDirect } from "./pocketbase-client.js";
+
+// Standardized error messages for better user experience
+const ERROR_MESSAGES = {
+  POCKETBASE_NOT_RUNNING:
+    "PocketBase is not running. Start it with: cd fastreader-backend && ./pocketbase serve",
+  NO_ACTIVE_SESSION:
+    "No active reading session. Open a document in FastReader first.",
+  DOCUMENT_NOT_FOUND: (id: string) =>
+    `Document '${id}' not found. Use fastreader_list_documents to see available documents.`,
+  QUESTION_NOT_FOUND: (id: string) =>
+    `Question '${id}' not found.`,
+  INVALID_RATING:
+    "Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).",
+};
 
 // Create MCP server
 const server = new Server(
@@ -38,7 +58,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{
           type: "text",
-          text: "Error: PocketBase is not running. Please start it with: ./pocketbase serve"
+          text: `Error: ${ERROR_MESSAGES.POCKETBASE_NOT_RUNNING}`
         }],
         isError: true
       };
@@ -64,8 +84,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ? await pb.collection('documents').getOne(session.document as string)
             : null;
 
-          const milestones = await pb.collection('session_milestones').getList(1, 100, {
-            filter: `session = "${session.id}"`
+          // Use direct fetch to work around PocketBase SDK filter encoding issues
+          // Use compact filter syntax (no spaces around =) for compatibility
+          const milestones = await fetchRecordsDirect<{
+            id: string;
+            milestone_percent: number;
+            quiz_prompted: boolean;
+            quiz_completed: boolean;
+          }>('session_milestones', {
+            page: 1,
+            perPage: 100,
+            filter: `session="${session.id}"`
           });
 
           result = {
@@ -96,7 +125,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "fastreader_get_document": {
-        const doc = await pb.collection('documents').getOne(args.documentId as string);
+        const documentId = validateDocumentId(args.documentId);
+        const doc = await pb.collection('documents').getOne(documentId);
         result = {
           id: doc.id,
           title: doc.title,
@@ -132,9 +162,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "fastreader_get_question_history": {
-        const questions = await pb.collection('questions').getList(1, 500, {
-          filter: `document = "${args.documentId}"`,
-          sort: '-created'
+        const documentId = validateDocumentId(args.documentId);
+        // Use direct fetch to work around PocketBase SDK filter encoding issues
+        // Use compact filter syntax (no spaces around =) for compatibility
+        // Sort by -id (descending) as workaround for PocketBase datetime sorting bug
+        const questions = await fetchRecordsDirect<{
+          id: string;
+          question_text: string;
+          question_type: string;
+          comprehension_type: string;
+          created: string;
+        }>('questions', {
+          page: 1,
+          perPage: 500,
+          filter: `document="${documentId}"`,
+          sort: '-id'
         });
 
         result = {
@@ -165,11 +207,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }>;
         };
 
+        // Validate inputs
+        const documentId = validateDocumentId(questionArgs.documentId);
+        validateQuestions(questionArgs.questions);
+
         const saved: Array<{ id: string; questionText: string }> = [];
 
         for (const q of questionArgs.questions) {
           const record = await pb.collection('questions').create({
-            document: questionArgs.documentId,
+            document: documentId,
             session: questionArgs.sessionId || null,
             ...toSnakeCase(q)
           });
@@ -193,23 +239,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           timeSpentMs?: number;
         };
 
-        // Validate rating is in FSRS range (1-4)
-        if (!answerArgs.rating || answerArgs.rating < 1 || answerArgs.rating > 4) {
-          throw new Error(
-            `Invalid rating: ${answerArgs.rating}. Rating must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).`
-          );
-        }
+        // Validate inputs using validation functions
+        const questionId = validateQuestionId(answerArgs.questionId);
+        validateRating(answerArgs.rating);
 
-        // Validate required fields
-        if (!answerArgs.questionId) {
-          throw new Error('questionId is required');
-        }
+        // Validate isCorrect is a boolean
         if (typeof answerArgs.isCorrect !== 'boolean') {
           throw new Error('isCorrect must be a boolean');
         }
 
         const attempt = await pb.collection('question_attempts').create({
-          question: answerArgs.questionId,
+          question: questionId,
           user_answer: answerArgs.userAnswer,
           is_correct: answerArgs.isCorrect,
           rating: answerArgs.rating,
@@ -237,10 +277,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "fastreader_get_due_questions": {
         const dueArgs = args as { limit?: number; documentId?: string };
         const now = new Date().toISOString();
-        let filter = `due_at <= "${now}"`;
+        // Use compact filter syntax (no spaces around operators)
+        let filter = `due_at<="${now}"`;
 
         if (dueArgs.documentId) {
-          filter += ` && question.document = "${dueArgs.documentId}"`;
+          filter += `&&question.document="${dueArgs.documentId}"`;
         }
 
         const attempts = await pb.collection('question_attempts').getList(1, dueArgs.limit || 20, {
@@ -307,13 +348,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     console.error("MCP Error:", error);
 
     const message = error instanceof Error ? error.message : String(error);
-    // Include stack trace for debugging
-    const stack = error instanceof Error ? error.stack : undefined;
+
+    // Translate common errors to user-friendly messages
+    let userMessage = message;
+
+    if (message.includes('ECONNREFUSED') || message.includes('fetch failed')) {
+      userMessage = ERROR_MESSAGES.POCKETBASE_NOT_RUNNING;
+    } else if (message.includes('404') || message.includes('not found')) {
+      // Detect document vs question not found
+      if (message.toLowerCase().includes('document') || (args.documentId && typeof args.documentId === 'string')) {
+        userMessage = ERROR_MESSAGES.DOCUMENT_NOT_FOUND(
+          (args.documentId as string) || 'unknown'
+        );
+      } else if (message.toLowerCase().includes('question') || (args.questionId && typeof args.questionId === 'string')) {
+        userMessage = ERROR_MESSAGES.QUESTION_NOT_FOUND(
+          (args.questionId as string) || 'unknown'
+        );
+      }
+    }
 
     return {
       content: [{
         type: "text",
-        text: `Error: ${message}${stack ? `\n\nStack: ${stack}` : ''}`
+        text: `Error: ${userMessage}`
       }],
       isError: true
     };
