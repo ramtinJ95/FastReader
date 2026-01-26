@@ -599,7 +599,7 @@ Re-add the server: `claude mcp add fastreader -- npx @anthropic/fastreader-mcp`
 3. Refresh the page
 ```
 
-### 4.2 Update Main README
+### 4.2 Update Main README ✅ COMPLETED
 
 Add to root `README.md`:
 
