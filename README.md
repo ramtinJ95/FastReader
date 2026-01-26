@@ -156,7 +156,7 @@ FastReader includes AI-powered reading comprehension questions. See [Installatio
 ### Quick Setup
 ```bash
 cd fastreader-backend && ./setup.sh && ./pocketbase serve
-claude mcp add fastreader -- npx @anthropic/fastreader-mcp
+claude mcp add fastreader -- npx @ramtinj/fastreader-mcp
 ```
 
 ## Contributing

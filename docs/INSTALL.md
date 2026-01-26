@@ -13,7 +13,7 @@ cd fastreader-backend
 ./pocketbase serve &
 
 # 3. Add MCP server to your AI CLI
-claude mcp add fastreader -- npx @anthropic/fastreader-mcp
+claude mcp add fastreader -- npx @ramtinj/fastreader-mcp
 
 # 4. Start FastReader (in another terminal)
 cd ..
@@ -48,12 +48,12 @@ The backend runs at `http://127.0.0.1:8090`. Admin UI at `http://127.0.0.1:8090/
 
 **For Claude Code:**
 ```bash
-claude mcp add fastreader -- npx @anthropic/fastreader-mcp
+claude mcp add fastreader -- npx @ramtinj/fastreader-mcp
 ```
 
 **For other AI CLIs:**
 ```bash
-npm install -g @anthropic/fastreader-mcp
+npm install -g @ramtinj/fastreader-mcp
 # Then add "fastreader-mcp" to your CLI's MCP configuration
 ```
 
@@ -92,7 +92,7 @@ fastreader-extract --version
 Start PocketBase: `cd fastreader-backend && ./pocketbase serve`
 
 ### "MCP server not found"
-Re-add the server: `claude mcp add fastreader -- npx @anthropic/fastreader-mcp`
+Re-add the server: `claude mcp add fastreader -- npx @ramtinj/fastreader-mcp`
 
 ### SSE connection issues
 1. Verify PocketBase is running

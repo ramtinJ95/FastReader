@@ -1,5 +1,5 @@
 {
-  "name": "@anthropic/fastreader-mcp",
+  "name": "@ramtinj/fastreader-mcp",
   "version": "1.0.0",
   "description": "MCP server for FastReader comprehension features",
   "type": "module",
