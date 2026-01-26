@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DueQuestionsList from '../components/review/DueQuestionsList';
 import ReviewStats from '../components/review/ReviewStats';
 import ReviewSession from '../components/review/ReviewSession';
+import '../components/review/review.css';
 
 type ViewMode = 'dashboard' | 'session';
 
