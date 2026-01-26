@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import DueQuestionsList from '../components/review/DueQuestionsList';
 import ReviewStats from '../components/review/ReviewStats';
 import ReviewSession from '../components/review/ReviewSession';
@@ -29,6 +30,9 @@ export default function ReviewDashboard() {
   return (
     <div className="review-dashboard">
       <header className="review-dashboard__header">
+        <Link to="/" className="review-dashboard__back" aria-label="Back to reader">
+          ←
+        </Link>
         <h1>Review</h1>
       </header>
 
