@@ -18,7 +18,7 @@ if ! command -v pocketbase &> /dev/null && [ ! -f "./pocketbase" ]; then
         aarch64|arm64) ARCH="arm64" ;;
     esac
 
-    VERSION="0.23.4"
+    VERSION="${POCKETBASE_VERSION:-0.23.4}"
     URL="https://github.com/pocketbase/pocketbase/releases/download/v${VERSION}/pocketbase_${VERSION}_${OS}_${ARCH}.zip"
 
     curl -L "$URL" -o pocketbase.zip

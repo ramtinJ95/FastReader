@@ -111,3 +111,9 @@ cd fastreader-backend
 rm -rf pb_data  # Warning: this deletes all data
 ./setup.sh
 ```
+
+### Using a different PocketBase version
+To use a specific PocketBase version:
+```bash
+POCKETBASE_VERSION=0.24.0 ./setup.sh
+```
